@@ -67,9 +67,6 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 @keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
-.more{display:block;margin:18px auto 0;border:2px solid var(--line);background:var(--card);color:var(--muted);border-radius:99px;padding:6px 16px;font:inherit;cursor:pointer}
-.more:hover{color:var(--ink)}
-.more[hidden]{display:none}
 
 /* activity badge: what the running agent is up to */
 .paw .pbadge,.paw .prop{display:none}
@@ -154,3 +151,35 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 .paw .crown{display:none}
 [data-main] .paw .crown{display:inline}
 .crown .gem{transform-box:fill-box;transform-origin:center;animation:twinkle 4s ease-in-out infinite}
+
+/* thinking about a skill / connector: the badge becomes a thought bubble holding its logo */
+.paw .thought,.paw .brandicon{display:none}
+[data-brand] .pbadge .base,[data-brand] .pbadge .prop{display:none!important}
+[data-brand] .pbadge .thought{display:inline}
+.brandicon{transform-box:fill-box;transform-origin:center;animation:iconin .5s ease-out both}
+.trail1,.trail2{animation:blink 3.4s ease-in-out infinite}.trail2{animation-delay:.6s}
+@keyframes iconin{from{opacity:0;scale:.6}to{opacity:1;scale:1}}
+[data-lv="1"] .trail1,[data-lv="1"] .trail2,[data-lv="1"] .brandicon{animation:none}
+
+/* worried: the last attempt failed and the agent is retrying (data-worried = 1..3 consecutive failures) */
+.paw :is(.worry-eyes,.worry-brows,.worry-mouth){display:none}
+[data-worried] .paw :is(.eye-open,.brows,.mouth){display:none}
+[data-worried] .paw :is(.worry-eyes,.worry-brows,.worry-mouth,.sweat){display:inline}
+[data-worried="2"] .paw .sweat2,[data-worried="3"] .paw .sweat2{display:inline}
+.sweat{transform-box:fill-box;transform-origin:center}
+[data-worried] .paw .sweat{animation:drip 2.4s ease-in infinite}
+[data-worried] .paw .sweat2{animation-delay:1s}
+[data-worried] .pupil{transform-box:fill-box;animation:dart 2.2s ease-in-out infinite}
+[data-status=running][data-worried] .paw{animation:tremble .6s ease-in-out infinite}
+[data-status=running][data-worried="3"] .paw{animation-duration:.32s}
+@keyframes tremble{0%,100%{transform:translateX(0) rotate(0)}25%{transform:translateX(-1.4px) rotate(-1.2deg)}75%{transform:translateX(1.4px) rotate(1.2deg)}}
+@keyframes drip{0%{opacity:0;transform:translateY(-3px)}20%{opacity:1}100%{opacity:0;transform:translateY(9px)}}
+@keyframes dart{0%,100%{transform:translateX(0)}30%{transform:translateX(-1.3px)}65%{transform:translateX(1.3px)}}
+
+/* a red cross for every failed attempt, bottom right of the animation frame */
+.fails{position:absolute;right:10px;bottom:7px;z-index:1;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:1px;max-width:58%}
+.fails[hidden]{display:none}
+.fails .x{color:#e5483d;font-size:15px;font-weight:900;line-height:1;text-shadow:0 1px 0 rgba(255,255,255,.55)}
+.fails .plus{color:#e5483d;font-size:11px;font-weight:800;margin-left:3px}
+.fails .x.new{animation:xpop .45s cubic-bezier(.3,1.7,.5,1)}
+@keyframes xpop{from{transform:scale(0)}to{transform:scale(1)}}

@@ -59,6 +59,46 @@ function fullTool(d) {
   return clip(parts.length ? parts.join('\n') : d.toolName, 1500, true);
 }
 
+// which skill / connector / CLI an agent is using, so its card can "think" about that logo
+const BRAND_WORDS = [['nx', 'nx'], ['sonar', 'sonar'], ['playwright', 'playwright'], ['docker', 'docker'], ['dotnet', 'dotnet'],
+  ['github', 'github'], ['gh', 'github'], ['devops', 'ado'], ['ado', 'ado'], ['azure', 'azure'], ['git', 'git'], ['npm', 'npm'], ['pnpm', 'npm'],
+  ['yarn', 'npm'], ['typescript', 'typescript'], ['python', 'python'], ['node', 'node'], ['eslint', 'eslint'], ['prettier', 'prettier'], ['vitest', 'vitest']];
+function brandFromWords(name = '') {
+  const words = String(name).toLowerCase().split(/[^a-z0-9]+/);
+  return BRAND_WORDS.find(([w]) => words.includes(w))?.[1] || null;
+}
+const CMD_BRAND = { git: 'git', gh: 'github', nx: 'nx', dotnet: 'dotnet', docker: 'docker', 'docker-compose': 'docker', playwright: 'playwright',
+  node: 'node', python: 'python', python3: 'python', tsc: 'typescript', eslint: 'eslint', prettier: 'prettier', vitest: 'vitest' };
+const RUNNERS = ['npm', 'npx', 'pnpm', 'yarn']; // "npx vitest" is about vitest, a bare "npm run" is about npm
+function brandFromCommand(cmd = '') {
+  for (const seg of String(cmd).split(/&&|\|\||;|\||\n/)) {
+    const t = seg.trim().split(/\s+/).filter(w => !/^\w+=/.test(w) && !['sudo', 'time', 'env', 'command'].includes(w));
+    if (!t.length) continue;
+    if (t[0] === 'az') return t.some(w => ['devops', 'boards', 'repos', 'pipelines'].includes(w)) ? 'ado' : 'azure';
+    if (CMD_BRAND[t[0]]) return CMD_BRAND[t[0]];
+    if (RUNNERS.includes(t[0])) return t.slice(1).map(w => CMD_BRAND[w]).find(Boolean) || 'npm';
+  }
+  return null;
+}
+const HOST_BRAND = [[/(^|\.)github(usercontent)?\.com$/, 'github'], [/(^|\.)(dev\.azure|visualstudio)\.com$/, 'ado'], [/(^|\.)azure\.com$/, 'azure'],
+  [/(^|\.)npmjs\.(org|com)$/, 'npm'], [/(^|\.)nodejs\.org$/, 'node'], [/(^|\.)(sonarcloud\.io|sonarsource\.com)$/, 'sonar'],
+  [/(^|\.)(python|pypi)\.org$/, 'python'], [/(^|\.)typescriptlang\.org$/, 'typescript'], [/(^|\.)vitest\.dev$/, 'vitest'], [/(^|\.)eslint\.org$/, 'eslint'],
+  [/(^|\.)prettier\.io$/, 'prettier'], [/(^|\.)docker\.com$/, 'docker'], [/(^|\.)nx\.dev$/, 'nx'], [/(^|\.)git-scm\.com$/, 'git'],
+  [/(^|\.)playwright\.dev$/, 'playwright'], [/(^|\.)dotnet\.microsoft\.com$/, 'dotnet']];
+function brandOf(d) {
+  const tool = d.toolName || '', a = d.arguments || {};
+  if (tool.startsWith('github-')) return 'github';
+  if (tool.startsWith('ado-')) return 'ado';
+  if (tool.startsWith('ide-')) return 'vscode';
+  if (/sonar/i.test(tool)) return 'sonar';
+  if (tool === 'skill') return brandFromWords(a.skill);
+  if (['bash', 'read_bash', 'write_bash', 'powershell'].includes(tool)) return brandFromCommand(a.command);
+  if (tool === 'web_fetch') {
+    try { const h = new URL(a.url).hostname; return HOST_BRAND.find(([re]) => re.test(h))?.[1] || null; } catch { return null; }
+  }
+  return null;
+}
+
 function describeTool(d) {
   const a = d.arguments || {};
   const what =
@@ -110,7 +150,7 @@ function sessionAlive(dir) {
 function getAgent(s, id, ts) {
   let a = s.agents.get(id);
   if (!a) {
-    a = { id, name: 'agent', type: '', description: '', model: '', mode: 'sync', status: 'running', kind: 'think', aic: 0,
+    a = { id, name: 'agent', type: '', description: '', model: '', mode: 'sync', status: 'running', kind: 'think', aic: 0, worry: 0, worryAt: 0, lastError: '', fails: 0,
       startedAt: ts, endedAt: null, activity: 'starting up…', activityAt: ts, tools: 0, tokens: 0 };
     s.agents.set(id, a);
   }
@@ -119,10 +159,20 @@ function getAgent(s, id, ts) {
 
 // the main (parent) agent of a session: same shape as a sub-agent, built lazily
 const mainOf = s => (s.main ??= { status: 'idle', startedAt: 0, endedAt: null, activity: '', activityFull: '', activityAt: 0,
-  kind: 'think', tools: 0, said: '', saidFull: '', lastMsgTools: 0, effort: null });
+  kind: 'think', tools: 0, said: '', saidFull: '', lastMsgTools: 0, effort: null, worry: 0, worryAt: 0, lastError: '', fails: 0 });
 function wakeMain(m, ts) {
   if (m.status === 'running') return;
   Object.assign(m, { status: 'running', startedAt: ts, endedAt: null, tools: 0, activityAt: ts });
+}
+
+// a tool call finished: failures make the agent "worried" (consecutive count), a success calms it down
+function trackResult(s, who, success, line) {
+  const t = who ? s.agents.get(who) : mainOf(s);
+  if (!t) return;
+  if (success) { t.worry = 0; return; }
+  let msg = '', ts = Date.now();
+  try { const e = JSON.parse(line); msg = e.data?.error?.message || ''; ts = Date.parse(e.timestamp) || ts; } catch {}
+  t.worry = (t.worry || 0) + 1; t.fails = (t.fails || 0) + 1; t.worryAt = ts; t.lastError = clip(msg, 200);
 }
 
 // a finished/napping agent that gets new work (write_agent) is running again
@@ -207,6 +257,7 @@ function handle(s, line) {
       s.pending.delete(d.requestId);
       break;
     case 'tool.execution_start':
+      s.owner.set(d.toolCallId, ev.agentId || null);
       if (d.toolName === 'ask_user') { // a question for the person
         const m = String(d.arguments?.message || 'has a question');
         const fields = Object.values(d.arguments?.requestedSchema?.properties || {}).map(p => `• ${p.title || ''}${p.description ? ': ' + p.description : ''}`);
@@ -218,12 +269,14 @@ function handle(s, line) {
         wakeMain(m, ts);
         Object.assign(m, { activity: describeTool(d), activityFull: fullTool(d), activityAt: ts, kind: kindOf(d.toolName) });
         m.tools += 1;
+        const b = brandOf(d); if (b) { m.brand = b; m.brandAt = ts; }
         break;
       }
       if (ev.agentId && s.agents.has(ev.agentId)) {
         const a = s.agents.get(ev.agentId);
         wake(a, ts);
         a.activity = describeTool(d); a.activityFull = fullTool(d); a.activityAt = ts; a.kind = kindOf(d.toolName); a.tools += 1;
+        const b = brandOf(d); if (b) { a.brand = b; a.brandAt = ts; }
       }
       break;
     case 'assistant.turn_end': // a turn whose last message asked for no tools means the agent is done for now
@@ -258,7 +311,7 @@ function pump(id, dir) {
   const file = join(dir, 'events.jsonl');
   let s = sessions.get(id);
   if (!s) {
-    s = { offset: 0, partial: '', meta: readMeta(dir), agents: new Map(), calls: new Map(), alive: false, lastUserAt: 0, pending: new Map(), aic: 0, mainAic: 0 };
+    s = { offset: 0, partial: '', meta: readMeta(dir), agents: new Map(), calls: new Map(), alive: false, lastUserAt: 0, pending: new Map(), aic: 0, mainAic: 0, owner: new Map() };
     sessions.set(id, s);
   }
   const size = statSync(file).size;
@@ -276,9 +329,16 @@ function pump(id, dir) {
     s.partial = lines.pop();
     for (const line of lines) {
       // cheap prefilter: skip the huge reasoning/model snapshot lines
-      if (line.startsWith('{"type":"tool.execution_complete"')) { // an ask_user the person has now answered
-        const m = line.match(/"toolCallId":"([^"]+)"/);
-        if (m && s.pending.delete(m[1])) changed = true;
+      if (line.startsWith('{"type":"tool.execution_complete"')) { // answered ask_user, and success / failure of every call
+        const head = line.slice(0, 700), m = head.match(/"toolCallId":"([^"]+)"/);
+        if (m) {
+          if (s.pending.delete(m[1])) changed = true;
+          if (s.owner.has(m[1])) {
+            const who = s.owner.get(m[1]); s.owner.delete(m[1]);
+            const ok = head.match(/"success":(true|false)/);
+            if (ok) { trackResult(s, who, ok[1] === 'true', line); changed = true; }
+          }
+        }
         continue;
       }
       if (!(line.startsWith('{"type":"subagent.') || line.startsWith('{"type":"user.message"') || line.startsWith('{"type":"system.notification"') ||
@@ -334,7 +394,7 @@ function snapshot() {
       let card = { id: 'main', name: s.promptTitle || s.meta.name || 'Copilot', type: 'main agent', description: s.promptFull || '', model: '', mode: 'sync',
         status: base.status, kind: base.kind, startedAt: base.startedAt || now, endedAt: base.endedAt, activity: base.activity,
         activityFull: base.activityFull, said: base.said, saidFull: base.saidFull, activityAt: base.activityAt || now,
-        tools: base.tools, aic: s.mainAic, effort: base.effort,
+        tools: base.tools, aic: s.mainAic, effort: base.effort, brand: base.brand, brandAt: base.brandAt, worry: base.worry || 0, worryAt: base.worryAt || 0, lastError: base.lastError || '', fails: base.fails || 0,
         label: idle ? (working ? 'waiting on agents' : 'your turn') : undefined };
       if (s.promptFull && base.activityFull) card.activityFull = `${base.activityFull}\n\n— current prompt —\n${s.promptFull}`;
       if (idle && working) {

@@ -66,6 +66,12 @@ Add `?demo` to the URL to preview every state with sample data.
 - It relies on Copilot CLI's internal log format (tested with 1.0.105), which could change in an update.
 - Built for macOS, Windows and Linux by CI; only macOS has been tried by hand so far — issues welcome.
 
+## Credits
+
+The tool logos in the "thinking" bubble are the real ones, taken from [simple-icons](https://simpleicons.org) (CC0-1.0:
+Git, GitHub, Nx, npm, .NET, Docker, SonarQube Cloud, Node.js, TypeScript, Python, Vitest, ESLint, Prettier) and
+[devicon](https://devicon.dev) (MIT: Azure DevOps, Azure, Visual Studio Code, Playwright). The marks remain trademarks of their respective owners and are shown only to identify the tool an agent is using.
+
 ## License
 
 MIT

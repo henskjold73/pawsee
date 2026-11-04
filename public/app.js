@@ -48,8 +48,12 @@ function pawSvg() {
       <g class="eye-happy" stroke="#3b2f2f" stroke-width="2.4" stroke-linecap="round" fill="none"><path d="M37 68q4-6 8 0M55 68q4-6 8 0"/></g>
       <g class="eye-x" stroke="#3b2f2f" stroke-width="2.4" stroke-linecap="round"><path d="M38 63l6 6M44 63l-6 6M56 63l6 6M62 63l-6 6"/></g>
       <ellipse cx="50" cy="74" rx="3.4" ry="2.6" fill="var(--bean)"/>
-      <path d="M50 76.5v2.5m-4 0q4 3 8 0" stroke="#3b2f2f" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+      <path class="mouth" d="M50 76.5v2.5m-4 0q4 3 8 0" stroke="#3b2f2f" stroke-width="1.8" stroke-linecap="round" fill="none"/>
       <circle class="cheek" cx="33" cy="73" r="3.5" fill="var(--bean)" opacity=".35"/><circle class="cheek" cx="67" cy="73" r="3.5" fill="var(--bean)" opacity=".35"/>
+      <g class="worry-eyes"><circle cx="41" cy="66" r="5.4" fill="#fff" stroke="#3b2f2f" stroke-width="1.5"/><circle cx="59" cy="66" r="5.4" fill="#fff" stroke="#3b2f2f" stroke-width="1.5"/>
+        <circle class="pupil" cx="41.8" cy="64.6" r="2.1" fill="#3b2f2f"/><circle class="pupil" cx="58.2" cy="64.6" r="2.1" fill="#3b2f2f"/></g>
+      <path class="worry-brows" d="M34 59.5L43 55.2M66 59.5L57 55.2" stroke="#3b2f2f" stroke-width="2.3" stroke-linecap="round" fill="none"/>
+      <path class="worry-mouth" d="M44 83q3-2.8 6 0t6 0" stroke="#3b2f2f" stroke-width="1.9" stroke-linecap="round" fill="none"/>
       <path class="brows" d="M35 59.5l8-2.6M65 59.5l-8-2.6" stroke="#3b2f2f" stroke-width="2.3" stroke-linecap="round" fill="none"/>
     </g>
     <g class="crown" transform="translate(50 9) rotate(-5)">
@@ -62,7 +66,14 @@ function pawSvg() {
       <path class="fx-spark spark1" transform="translate(112 54)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/><path class="fx-spark spark2" transform="translate(-1 48)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/>
       <path class="fx-spark spark3" transform="translate(22 -8)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/><path class="fx-spark spark4" transform="translate(106 90)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/></g>
     <g class="pbadge" transform="translate(90 2) scale(1.35)"><g class="bob">
-      <circle r="19" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+      <circle class="base" r="19" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+      <g class="thought">
+        <g fill="var(--card)" stroke="var(--line)" stroke-width="4"><circle cx="-10" cy="-6" r="10"/><circle cx="8" cy="-8" r="11"/><circle cx="15" cy="4" r="9"/><circle cx="-1" cy="11" r="11"/><circle cx="-14" cy="6" r="8"/><circle cx="1" cy="0" r="11"/></g><g fill="var(--card)"><circle cx="-10" cy="-6" r="10"/><circle cx="8" cy="-8" r="11"/><circle cx="15" cy="4" r="9"/><circle cx="-1" cy="11" r="11"/><circle cx="-14" cy="6" r="8"/><circle cx="1" cy="0" r="11"/></g>
+        <circle class="trail1" cx="-22" cy="19" r="4.2" fill="var(--card)" stroke="var(--line)" stroke-width="1.8"/>
+        <circle class="trail2" cx="-29" cy="27" r="2.6" fill="var(--card)" stroke="var(--line)" stroke-width="1.5"/>
+        <circle class="plate" r="12.6" fill="#fff"/>
+        ${Object.entries(BRAND_ICONS).map(([k, svg]) => `<g class="brandicon b-${k}">${svg}</g>`).join('')}
+      </g>
       <g class="prop p-web" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round">
         <circle r="10.5"/><ellipse class="meridian" rx="4.5" ry="10.5"/><path d="M-10.5 0h21M-8 -5.5h16M-8 5.5h16"/></g>
       <g class="prop p-code" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -82,7 +93,7 @@ function pawSvg() {
       <g class="prop p-think" fill="var(--ink)"><circle class="d1" cx="-8" cy="3" r="2.6"/><circle class="d2" cx="0" cy="0" r="3.4"/><circle class="d3" cx="8" cy="-4" r="4.4"/></g>
     </g></g>
     <g class="zzz" fill="var(--idle)" font-weight="700"><text x="74" y="20" font-size="16">z</text><text x="84" y="8" font-size="11">z</text></g>
-    <path class="sweat" d="M78 40q4 7 0 9-4-2 0-9z" fill="#7bc4ec"/>
+    <path class="sweat" d="M78 40q4 7 0 9-4-2 0-9z" fill="#7bc4ec"/><path class="sweat sweat2" d="M22 42q-4 7 0 9 4-2 0-9z" fill="#7bc4ec"/>
   </svg>`;
 }
 
@@ -114,6 +125,7 @@ function metaHtml(a, now) {
     : `✓ ${a.durationMs ? 'took ' + dur(a.durationMs) : ago(now - (a.endedAt ?? a.startedAt))}`;
   const tags = [`<span class="tag">${t}</span>`];
   if (a.tools != null) tags.push(`<span class="tag">🔧 ${a.tools}</span>`);
+  if (a.status === 'running' && a.worry > 0 && now - a.worryAt < 15e3) tags.push(`<span class="tag" title="${esc(a.lastError || 'the last attempt failed')}">😰 ${a.worry > 1 ? 'retrying (' + a.worry + ' fails)' : 'retrying'}</span>`);
   if (a.effort) tags.push(`<span class="tag" title="Reasoning effort this agent runs with">🧠 ${esc(a.effort)}</span>`);
   if (a.aic > 0) tags.push(`<span class="tag" title="AI credits used by this agent">⚡ ${fmtAic(a.aic)} AIC</span>`);
   if (a.asksParent) tags.push('<span class="tag">❓ ends with a question</span>');
@@ -139,6 +151,9 @@ const demo = now => {
       activity: 'asks: Which branch should I base the fix on?', activityFull: 'Question\nWhich branch should I base the fix on?\n• Branch: main or the release branch' },
     { id: 'w1', name: 'demo-fix-lint', status: 'waiting', kind: 'ask', waitingSince: now - 25e3, startedAt: now - 90e3, tools: 12,
       activity: 'needs your approval: Run the test suite', activityFull: 'Approval needed\nRun the test suite\n$ npm test -- --coverage' }];
+  const BR = Object.keys(BRAND_ICONS), rot = Math.floor(now / 5000);
+  run.forEach((x, i) => { x.brand = BR[(i + rot) % BR.length]; x.brandAt = now; });
+  run.forEach((x, i) => { x.worry = [0, 0, 1, 0, 2, 0, 3, 0][i % 8]; x.worryAt = now - 2000; x.lastError = 'Path does not exist'; x.fails = [0, 2, 1, 4, 2, 0, 9, 13][i % 8]; });
   [...run, ...rest].forEach((x, i) => { x.effort = ['low', 'medium', 'high', 'xhigh'][i % 4]; });
   const all = [...wait, ...run, ...rest];
   // demo only: every few seconds 2-3 random cards jump to the front and push the rest back, to preview the slide
@@ -175,7 +190,7 @@ function render(snap) {
     if (!el) {
       el = document.createElement('article');
       el.className = 'card';
-      el.innerHTML = `<div class="stage"><span class="badge"></span><span class="typebadge" hidden></span>${pawSvg()}</div><div class="body"><div class="top"><span class="name"></span></div>
+      el.innerHTML = `<div class="stage"><span class="badge"></span><span class="fails" hidden></span><span class="typebadge" hidden></span>${pawSvg()}</div><div class="body"><div class="top"><span class="name"></span></div>
         <div class="sub"></div><div class="doing"></div><div class="meta"></div></div>`;
       el.style.setProperty('--h', hueOf(key));
       const doing = el.querySelector('.doing');
@@ -190,6 +205,20 @@ function render(snap) {
     el.dataset.status = a.status;
     el.toggleAttribute('data-main', a.type === 'main agent'); // the one in charge wears a crown
     el.dataset.lv = LEVEL[a.effort] || 2;
+    // one red cross under the paw for every failed attempt so far (the newest pops in)
+    const fails = a.fails || 0, fx = el.querySelector('.fails');
+    if (el._fails !== fails) {
+      const shown = Math.min(fails, 6);
+      fx.hidden = !fails;
+      fx.title = `${fails} failed attempt${fails === 1 ? '' : 's'}`;
+      fx.innerHTML = Array.from({ length: shown }, (_, i) => `<span class="x${el._fails != null && i === shown - 1 && fails > el._fails ? ' new' : ''}">✕</span>`).join('')
+        + (fails > shown ? `<span class="plus">+${fails - shown}</span>` : '');
+      el._fails = fails;
+    }
+    // a failed attempt, and the agent is trying again: worried, more so the more it fails in a row
+    if (a.status === 'running' && a.worry > 0 && now - a.worryAt < 15e3) el.dataset.worried = Math.min(a.worry, 3); else delete el.dataset.worried;
+    // thinking about a skill / connector it just used: the round badge turns into a thought bubble with its logo
+    if (a.status === 'running' && a.brand && now - a.brandAt < 12e3) el.dataset.brand = a.brand; else delete el.dataset.brand;
     el.classList.toggle('fading', a.label !== 'waiting on agents' && ['done', 'failed', 'lost', 'idle'].includes(a.status) && now - (a.endedAt ?? a.activityAt) > fadeMs - 15e3);
     el.dataset.kind = a.kind || 'think';
     el.querySelector('.name').textContent = a.type === 'main agent' ? a.name : a.name.replace(/[-_]+/g, ' '); // agent names are slugs; a prompt title is already prose
