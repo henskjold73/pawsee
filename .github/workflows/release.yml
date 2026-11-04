@@ -1,3 +1,4 @@
+# Builds single-file binaries for macOS, Linux and Windows; publishes a release when a v* tag is pushed.
 name: release
 
 on:
