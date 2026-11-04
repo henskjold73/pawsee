@@ -279,6 +279,15 @@ function handle(s, line) {
         const b = brandOf(d); if (b) { a.brand = b; a.brandAt = ts; }
       }
       break;
+    case 'session.task_complete': { // the agent declared its task done (its last message called task_complete, so turn_end alone can't tell)
+      const summary = String(d.summary || '').trim();
+      const t = !ev.agentId ? mainOf(s) : s.agents.get(ev.agentId);
+      if (t && (t.startedAt || ev.agentId) && t.status === 'running') {
+        t.status = 'idle'; t.endedAt = ts;
+        if (summary) { t.said = clip(summary.replace(/[#*`>_]+/g, ''), 220); t.saidFull = clip(summary, 4000, true); }
+      }
+      break;
+    }
     case 'assistant.turn_end': // a turn whose last message asked for no tools means the agent is done for now
       for (const [k, p] of s.pending) if (p.agentId === (ev.agentId || null)) s.pending.delete(k); // a finished turn can't still be waiting
       if (!ev.agentId) {
@@ -342,7 +351,7 @@ function pump(id, dir) {
         continue;
       }
       if (!(line.startsWith('{"type":"subagent.') || line.startsWith('{"type":"user.message"') || line.startsWith('{"type":"system.notification"') ||
-        line.startsWith('{"type":"permission.') || line.startsWith('{"type":"session.usage_record"') || line.startsWith('{"type":"assistant.turn_end"') ||
+        line.startsWith('{"type":"permission.') || line.startsWith('{"type":"session.task_complete"') || line.startsWith('{"type":"session.usage_record"') || line.startsWith('{"type":"assistant.turn_end"') ||
         line.startsWith('{"type":"tool.execution_start"') || line.startsWith('{"type":"assistant.message"'))) continue;
       try { handle(s, line); changed = true; } catch {}
     }
