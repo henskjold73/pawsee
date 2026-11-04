@@ -139,6 +139,9 @@ function handle(s, line) {
       if (d.toolCallId) s.calls.set(d.toolCallId, ev.agentId);
       break;
     }
+    case 'subagent.configured': // the reasoning effort an agent was set up with
+      if (d.reasoningEffort && ev.agentId) getAgent(s, ev.agentId, ts).effort = d.reasoningEffort;
+      break;
     case 'subagent.completed': {
       const a = getAgent(s, ev.agentId, ts);
       Object.assign(a, { status: 'done', endedAt: ts, tools: d.totalToolCalls ?? a.tools,
@@ -169,7 +172,11 @@ function handle(s, line) {
       const credits = (d.usage?.copilotUsage?.totalNanoAiu || 0) / 1e9;
       s.aic += credits;
       if (!ev.agentId) s.mainAic += credits;
-      else if (s.agents.has(ev.agentId)) s.agents.get(ev.agentId).aic += credits;
+      else if (s.agents.has(ev.agentId)) {
+        const a = s.agents.get(ev.agentId);
+        a.aic += credits;
+        if (d.usage?.reasoningEffort) a.effort = d.usage.reasoningEffort; // latest effort used for a call
+      }
       break;
     }
     case 'permission.requested': { // waiting for the person to approve something
@@ -311,7 +318,8 @@ function snapshot() {
   }
   for (const a of agents) usage[a.session] ??= sessions.get([...sessions.keys()].find(k => k.startsWith(a.session))).aic;
   const rank = { waiting: 0, running: 1, idle: 2, failed: 3, done: 4, lost: 5 };
-  agents.sort((x, y) => rank[x.status] - rank[y.status] || (y.endedAt ?? y.activityAt) - (x.endedAt ?? x.activityAt));
+  // grouped by state, then in the order agents started, so cards only move when an agent changes state
+  agents.sort((x, y) => rank[x.status] - rank[y.status] || x.startedAt - y.startedAt || (x.id < y.id ? -1 : 1));
   return { now, agents, fadeMs: FADE_MS, aic: Object.values(usage).reduce((x, y) => x + y, 0), aicSessions: Object.keys(usage).length };
 }
 

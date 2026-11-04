@@ -135,3 +135,17 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
   padding:2px 9px;border-radius:99px;background:var(--card);color:var(--ink);border:1.5px solid color-mix(in srgb,var(--paw-dark) 45%,transparent);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .typebadge[hidden]{display:none}
+
+/* effort -> detail: data-lv 1 (low, plainest) .. 4 (xhigh, fanciest); 2 is the standard look */
+.paw :is(.fx-halo,.fx-orbit,.fx-spark,.brows){display:none}
+[data-status=running]:is([data-lv="3"],[data-lv="4"]) .paw :is(.brows,.spark1,.spark2){display:inline}
+[data-status=running][data-lv="4"] .paw :is(.fx-halo,.fx-orbit,.spark3,.spark4){display:inline}
+.fx-spark{transform-box:fill-box;transform-origin:center;animation:twinkle 3.2s ease-in-out infinite}
+.spark2{animation-delay:.8s}.spark3{animation-delay:1.6s}.spark4{animation-delay:2.4s}
+.fx-halo{transform-box:fill-box;transform-origin:center;animation:halo 4.5s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:0;scale:.3}50%{opacity:1;scale:1}}
+@keyframes halo{0%,100%{opacity:.15;scale:.96}50%{opacity:.55;scale:1.05}}
+[data-lv="1"] .paw .cheek{display:none}
+[data-lv="1"] .toe{animation:none!important}
+[data-lv="1"][data-status=running] .paw{animation-duration:6s}
+[data-lv="1"] .pbadge .bob,[data-lv="1"] .prop *,[data-lv="1"] .prop{animation:none!important}
