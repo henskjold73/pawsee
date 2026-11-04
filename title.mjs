@@ -3,13 +3,13 @@
 const FILLER = /^(?:hey|hi|hello|ok(?:ay)?|right|alright|yeah|so|well|now|and|but|also|then|please|pls|can you|could you|would you|will you|i want you to|i want to|i need you to|i need to|we need to|we should|we could|we can|let'?s|lets|go ahead and|try to|probably|maybe|just|actually|basically)\b[\s,:-]*/i;
 const NO_TOPIC = /^(?:y(?:es|ep|eah)?|n(?:o|ope)?|ok(?:ay)?|sure|thanks?|thank you|go|continue|proceed|do it|next|done|good|great|nice|cool|lgtm|now|and now|then|what now|why|how|what|really)\W*$/i;
 const LABEL = /^(?:task|goal|objective|request|question|issue|problem|bug|context|ask)\s*:\s*/i;
-const CODE_START = /^\s*(?:const|let|var|import|export|function|class|interface|type|return|if|for|<\/?[a-z]|[{}()[\]]|\/\/|\/\*|@\w+)/;
+const CODE_START = /^(?:const|let|var|import|export|function|class|interface|type|return|if|for|<\/?[a-z]|[{}()[\]]|\/\/|\/\*|@\w+)/;
 
 export function titleFromPrompt(text, max = 52) {
   let t = String(text ?? '').replace(/```[\s\S]*?```/g, ' ').trim();
   const firstLine = t.split('\n').map(l => l.trim()).find(Boolean) || '';
   if (!firstLine) return null;
-  if (/^<\/?[a-z_]+[\s>]/i.test(firstLine)) return null;                // injected notifications / markup, not a prompt
+  if (/^<\/?[a-z_][\w-]*[\s>]/i.test(firstLine)) return null;                // injected notifications / markup, not a prompt
   if (CODE_START.test(firstLine) && /[;{}=>]/.test(firstLine)) return 'Pasted code';
 
   t = firstLine

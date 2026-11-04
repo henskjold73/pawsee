@@ -34,10 +34,10 @@ function pawSvg() {
       <circle cx="56" cy="0" r="2.6"/><circle cx="-28" cy="48.5" r="2.6"/><circle cx="-28" cy="-48.5" r="2.6"/></g>
       <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="16s" repeatCount="indefinite" additive="sum"/></g>
     <g class="toes" fill="var(--paw)" stroke="var(--paw-dark)" stroke-width="2">
-      <g class="toe"><ellipse cx="20" cy="42" rx="10" ry="13" transform="rotate(-20 20 42)"/></g>
-      <g class="toe"><ellipse cx="38" cy="26" rx="10" ry="14" transform="rotate(-6 38 26)"/></g>
-      <g class="toe"><ellipse cx="62" cy="26" rx="10" ry="14" transform="rotate(6 62 26)"/></g>
-      <g class="toe"><ellipse cx="80" cy="42" rx="10" ry="13" transform="rotate(20 80 42)"/></g>
+      <g class="toe"><ellipse cx="20" cy="42" rx="10" ry="13" transform="rotate(-20 20 42)"/><path class="claw" transform="rotate(-20 20 42)" d="M16 31Q17 21 23 17Q24 25 24 31Z"/></g>
+      <g class="toe"><ellipse cx="38" cy="26" rx="10" ry="14" transform="rotate(-6 38 26)"/><path class="claw" transform="rotate(-6 38 26)" d="M34 14Q35 4 41 0Q42 8 42 14Z"/></g>
+      <g class="toe"><ellipse cx="62" cy="26" rx="10" ry="14" transform="rotate(6 62 26)"/><path class="claw" transform="rotate(6 62 26)" d="M58 14Q59 4 65 0Q66 8 66 14Z"/></g>
+      <g class="toe"><ellipse cx="80" cy="42" rx="10" ry="13" transform="rotate(20 80 42)"/><path class="claw" transform="rotate(20 80 42)" d="M76 31Q77 21 83 17Q84 25 84 31Z"/></g>
     </g>
     <path d="M50 44c-17 0-30 14-30 28 0 10 8 16 17 16 6 0 9-3 13-3s7 3 13 3c9 0 17-6 17-16 0-14-13-28-30-28z"
       fill="var(--paw)" stroke="var(--paw-dark)" stroke-width="2"/>
@@ -46,6 +46,10 @@ function pawSvg() {
         <circle cx="42.2" cy="64.8" r="1.1" fill="#fff"/><circle cx="60.2" cy="64.8" r="1.1" fill="#fff"/></g>
       <g class="eye-closed" stroke="#3b2f2f" stroke-width="2.4" stroke-linecap="round" fill="none"><path d="M37 66q4 3 8 0M55 66q4 3 8 0"/></g>
       <g class="eye-happy" stroke="#3b2f2f" stroke-width="2.4" stroke-linecap="round" fill="none"><path d="M37 68q4-6 8 0M55 68q4-6 8 0"/></g>
+      <g class="eye-sleepy" stroke="#3b2f2f" stroke-width="2.4" stroke-linecap="round" fill="none"><path d="M37.4 66.5h7.2M55.4 66.5h7.2"/><path d="M38 66.5a3.2 3.2 0 0 0 6 0M56 66.5a3.2 3.2 0 0 0 6 0" fill="#3b2f2f" stroke-width="1.4"/></g>
+      <g class="dizzy-eyes" stroke="#3b2f2f" stroke-width="1.8" stroke-linecap="round" fill="none"><circle cx="41" cy="66" r="5.4" fill="#fff" stroke-width="1.5"/><circle cx="59" cy="66" r="5.4" fill="#fff" stroke-width="1.5"/>
+        <path d="M41 66m0-.1a1 1 0 1 1 1.6 1.4a2.6 2.6 0 1 1-3.8-3 4 4 0 1 1 5.4 5.2" transform="rotate(0 41 66)"/><path d="M59 66m0-.1a1 1 0 1 1 1.6 1.4a2.6 2.6 0 1 1-3.8-3 4 4 0 1 1 5.4 5.2"/></g>
+      <ellipse class="yawn" cx="50" cy="82" rx="3.2" ry="3.8" fill="#3b2f2f"/>
       <g class="eye-x" stroke="#3b2f2f" stroke-width="2.4" stroke-linecap="round"><path d="M38 63l6 6M44 63l-6 6M56 63l6 6M62 63l-6 6"/></g>
       <ellipse cx="50" cy="74" rx="3.4" ry="2.6" fill="var(--bean)"/>
       <path class="mouth" d="M50 76.5v2.5m-4 0q4 3 8 0" stroke="#3b2f2f" stroke-width="1.8" stroke-linecap="round" fill="none"/>
@@ -93,6 +97,8 @@ function pawSvg() {
         <path class="t1" d="M-5.5 -2l1.6 1.6 3-3.2"/><path class="t2" d="M-5.5 4.5l1.6 1.6 3-3.2"/><path d="M0 -2h5M0 4.5h5"/></g>
       <g class="prop p-think" fill="var(--ink)"><circle class="d1" cx="-8" cy="3" r="2.6"/><circle class="d2" cx="0" cy="0" r="3.4"/><circle class="d3" cx="8" cy="-4" r="4.4"/></g>
     </g></g>
+    <g class="dizzy-stars" fill="#f6c945"><g class="spin"><path transform="translate(18 14)" d="M0 -5L1.4 -1.4L5 0L1.4 1.4L0 5L-1.4 1.4L-5 0L-1.4 -1.4Z"/><path transform="translate(82 10)" d="M0 -4L1.1 -1.1L4 0L1.1 1.1L0 4L-1.1 1.1L-4 0L-1.1 -1.1Z"/><path transform="translate(50 -6)" d="M0 -5L1.4 -1.4L5 0L1.4 1.4L0 5L-1.4 1.4L-5 0L-1.4 -1.4Z"/></g></g>
+    <g class="zzz zzz2" fill="var(--idle)" font-weight="700"><text x="64" y="34" font-size="20">z</text><text x="92" y="18" font-size="14">z</text></g>
     <g class="zzz" fill="var(--idle)" font-weight="700"><text x="74" y="20" font-size="16">z</text><text x="84" y="8" font-size="11">z</text></g>
     <path class="sweat" d="M78 40q4 7 0 9-4-2 0-9z" fill="#7bc4ec"/><path class="sweat sweat2" d="M22 42q-4 7 0 9 4-2 0-9z" fill="#7bc4ec"/>
   </svg>`;
@@ -157,6 +163,9 @@ const demo = now => {
   run.forEach((x, i) => { x.worry = [0, 0, 1, 0, 2, 0, 3, 0][i % 8]; x.worryAt = now - 2000; x.lastError = 'Path does not exist'; x.fails = [0, 2, 1, 4, 2, 0, 9, 13][i % 8]; });
   [...run, ...rest].forEach((x, i) => { x.effort = ['low', 'medium', 'high', 'xhigh'][i % 4]; });
   const all = [...wait, ...run, ...rest];
+  const cyc = all.find(x => x.id === 'r0'), phase = Math.floor(now / 9000) % 4; // demo only: one card keeps finishing and failing, to preview the reactions
+  if (cyc && phase % 2) Object.assign(cyc, { status: phase === 1 ? 'done' : 'failed', endedAt: now - 1000 }); // running, done, running, failed
+  all.forEach((x, i) => { x.source = i % 3 === 1 ? 'claude' : 'copilot'; }); // some of the demo cards are Claude Code ones
   // demo only: every few seconds 2-3 random cards jump to the front and push the rest back, to preview the slide
   const step = Math.floor(now / 5000);
   if (!demoOrder) demoOrder = all.map(x => x.id);
@@ -172,6 +181,36 @@ const demo = now => {
 };
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+// a happy hop with confetti when an agent finishes, a flop when it fails
+function react(el, kind) {
+  el.classList.remove('cheer', 'flop');
+  void el.offsetWidth; // restart the animation if it is already playing
+  el.classList.add(kind);
+  setTimeout(() => el.classList.remove(kind), 2200);
+  if (kind !== 'cheer') return;
+  const stage = el.querySelector('.stage');
+  const colors = ['#f6c945', '#ef6f6c', '#59c3a5', '#6aa7f5', '#c58bf2', '#ff9f5a'];
+  for (let i = 0; i < 16; i++) {
+    const c = document.createElement('i');
+    c.className = 'confetti';
+    const ang = (-80 + (i / 15) * 160) * Math.PI / 180, dist = 60 + Math.random() * 50;
+    c.style.cssText = `--dx:${Math.round(Math.sin(ang) * dist)}px;--dy:${Math.round(-Math.cos(ang) * dist - 10)}px;--r:${Math.round(Math.random() * 540 - 270)}deg;--c:${colors[i % colors.length]};--d:${Math.round(Math.random() * 120)}ms`;
+    stage.appendChild(c);
+    setTimeout(() => c.remove(), 1700);
+  }
+}
+
+// tab alerts: icon + title while something needs you, and a tick if work finished while you were looking elsewhere
+let finishedAway = false, lastFav = '', flash = false;
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { finishedAway = false; applyTab(); } });
+setInterval(() => { flash = !flash; if (document.hidden) applyTab(); }, 1500);
+function applyTab() {
+  const fav = PawMood.faviconFor(tabWaiting, finishedAway && !tabWaiting);
+  if (fav !== lastFav) { document.getElementById('fav').href = fav; lastFav = fav; }
+  document.title = PawMood.titleFor(tabWaiting, finishedAway, document.hidden && flash);
+}
+let tabWaiting = 0;
 
 function render(snap) {
   if (snap.version) document.getElementById('ver').textContent = 'v' + snap.version;
@@ -204,7 +243,14 @@ function render(snap) {
       if (reduceMotion.matches) el.querySelector('svg').pauseAnimations();
       cards.set(key, el);
     }
+    const reaction = !reduceMotion.matches && el._status && PawMood.reactionOf(el._status, a); // only for an agent we saw running, never on page load
+    if (reaction) react(el, reaction);
+    if (reaction && document.hidden) finishedAway = true;
+    el._status = a.status;
     el.dataset.status = a.status;
+    const mood = PawMood.moodOf(a, now);
+    if (mood) el.dataset.mood = mood; else delete el.dataset.mood;
+    el.dataset.source = a.source || 'copilot'; // Claude Code agents have claws, not paws
     el.toggleAttribute('data-main', a.type === 'main agent'); // the one in charge wears a crown
     el.dataset.lv = LEVEL[a.effort] || 2;
     // one red cross under the paw for every failed attempt so far (the newest pops in)
@@ -252,8 +298,9 @@ function render(snap) {
         { id: 'move', duration: 600, easing: 'cubic-bezier(.2,.8,.2,1)' });
     }
   }
-  const waiting = n('waiting');
-  document.title = waiting ? `(${waiting}) needs you · pawsee` : 'pawsee';
+  tabWaiting = n('waiting');
+  if (agents.some(a => a.status === 'running')) finishedAway = false; // work resumed: the tick is stale
+  applyTab();
 }
 
 let last;

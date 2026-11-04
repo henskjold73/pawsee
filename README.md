@@ -72,6 +72,12 @@ The binaries aren't code-signed, so a browser download will be flagged: on macOS
 | failed | the agent errored |
 | grey | its session ended while it was still running |
 
+Paws have moods too: sleepy-eyed just after napping off and deeply asleep (slow breathing, extra z's) after two minutes, and dizzy (spiral eyes, circling stars) after lots of failed attempts in a row.
+When an agent that was running finishes, its paw does a happy hop with confetti; when it fails, it flops over.
+While the tab is in the background, the tab icon gets an amber count when something needs you (and the title flashes), or a green tick when work finished while you were away.
+
+Claude Code agents get claws on their toes, so you can tell them from Copilot CLI's paws at a glance.
+
 Each card also shows the AI credits (AIC) that agent has used, and the header shows the session total (Copilot CLI only: Claude Code doesn't log credits).
 Claude Code has no approval prompts in its logs, so "needs you" appears there for `AskUserQuestion` only.
 Agents left over from before your latest prompt in a session are hidden, so the page only shows the current task.
@@ -84,6 +90,12 @@ for example `nx.png`, `my-deploy-skill.svg` or `ado.webp` (png, jpg, webp, gif o
 its thought bubble. Names are matched case-insensitively with dashes for anything else, and `plugin:skill` also matches `skill`.
 The same name also matches an MCP tool prefix (`github-…`) or a command (`terraform`), and your image wins over the built-in logos.
 New files are picked up without restarting. Square images with a transparent or white background look best.
+
+## Development
+
+```bash
+npm test   # unit tests plus end-to-end tests that run the server against fake Copilot and Claude Code logs
+```
 
 ## Notes
 

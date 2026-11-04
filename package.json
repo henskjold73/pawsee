@@ -23,10 +23,13 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@stryker-mutator/core": "^10.1.1",
     "esbuild": "^0.28.2",
     "postject": "^1.0.0-alpha.6"
   },
   "scripts": {
-    "build:binary": "node scripts/build-binary.mjs"
+    "build:binary": "node scripts/build-binary.mjs",
+    "test": "node --test",
+    "mutate": "stryker run"
   }
 }

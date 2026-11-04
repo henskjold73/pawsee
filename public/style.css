@@ -39,6 +39,9 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 
 /* paw animations */
 .paw .face{transform-box:fill-box}
+/* Claude Code agents: little claws on the toes */
+.paw .claw{display:none;fill:#f6efe6;stroke:var(--paw-dark);stroke-width:1.6;stroke-linejoin:round}
+[data-source=claude] .paw .claw{display:inline}
 .paw .toe{transform-box:fill-box;transform-origin:50% 100%}
 .paw .toes ellipse{vector-effect:none}
 .paw .eye-open{display:inline}.paw .eye-closed,.paw .eye-happy,.paw .eye-x,.paw .zzz,.paw .spark,.paw .sweat{display:none}
@@ -188,3 +191,29 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 /* version, small and quiet, right after the name */
 .ver{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0;margin-left:2px;vertical-align:baseline}
 .ver:empty{display:none}
+
+/* moods: sleepy just after napping off, deeply asleep later, dizzy after lots of failures */
+.paw :is(.eye-sleepy,.yawn,.dizzy-eyes,.dizzy-stars,.zzz2){display:none}
+[data-mood=sleepy] .paw .eye-closed,[data-mood=sleepy] .paw .mouth,[data-mood=sleepy] .paw .zzz{display:none}
+[data-mood=sleepy] .paw :is(.eye-sleepy,.yawn){display:inline}
+[data-mood=sleepy] .paw .yawn{animation:yawn 3s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes yawn{0%,100%{transform:scale(.6)}50%{transform:scale(1.15)}}
+[data-status=idle][data-mood=deep] .paw{animation-duration:9s;opacity:.82}
+[data-mood=deep] .paw .zzz2{display:inline}
+[data-mood=deep] .zzz text{animation-duration:8s}
+[data-mood=dizzy] .paw :is(.eye-open,.brows,.mouth,.worry-eyes,.worry-brows,.worry-mouth){display:none}
+[data-mood=dizzy] .paw :is(.dizzy-eyes,.dizzy-stars){display:inline}
+.dizzy-stars .spin{transform-box:view-box;transform-origin:50px 58px;animation:spinstars 3.2s linear infinite}
+@keyframes spinstars{to{transform:rotate(360deg)}}
+[data-status=running][data-mood=dizzy] .paw{animation:woozy 1.6s ease-in-out infinite}
+@keyframes woozy{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg) translateY(1px)}}
+
+/* one-off reactions: a hop with confetti when an agent finishes, a flop when it fails */
+.card.cheer .paw{animation:cheer 1.6s ease-out}
+@keyframes cheer{0%{transform:translateY(0) rotate(0)}20%{transform:translateY(-16px) rotate(-8deg) scale(1.05)}40%{transform:translateY(0) rotate(6deg)}60%{transform:translateY(-10px) rotate(-5deg)}80%{transform:translateY(0) rotate(3deg)}100%{transform:none}}
+.card.cheer .paw .eye-open{display:none}.card.cheer .paw .eye-happy{display:inline}
+.confetti{position:absolute;left:50%;top:48%;width:7px;height:11px;border-radius:2px;background:var(--c);pointer-events:none;opacity:0;animation:confetti 1.5s cubic-bezier(.15,.7,.3,1) var(--d,0ms) both}
+@keyframes confetti{0%{opacity:1;transform:translate(0,0) rotate(0)}70%{opacity:1}100%{opacity:0;transform:translate(var(--dx),calc(var(--dy) + 50px)) rotate(var(--r))}}
+.card.flop .paw{animation:flop 1.6s ease-out;transform-origin:50% 100%}
+@keyframes flop{0%{transform:none}25%{transform:rotate(-18deg) translateY(-4px)}55%{transform:rotate(26deg) translateY(10px)}75%{transform:rotate(18deg) translateY(8px)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){.confetti{display:none}.card.cheer .paw,.card.flop .paw{animation:none}}

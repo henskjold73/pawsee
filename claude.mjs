@@ -22,7 +22,7 @@ const textOf = c => typeof c === 'string' ? c
   : Array.isArray(c) ? c.filter(b => b?.type === 'text').map(b => b.text).join('\n') : '';
 
 // system-injected "user" turns (hooks, command echoes, task notifications) are not the person talking
-const synthetic = t => /^\s*</.test(t) && !/^\s*<pasted_content/.test(t) // any injected <tag> block, but not a paste the person made
+const synthetic = t => /^</.test(t) && !/^<pasted_content/.test(t) // (t is trimmed) any injected <tag> block, but not a paste the person made
   || t.startsWith('This session is being continued from a previous conversation');
 
 /** one parsed log entry -> zero or more Copilot-style events. `agentId` is set for lines read from a sub-agent file; `st` is per-file scratch state. */
@@ -43,7 +43,7 @@ export function translate(e, agentId = null, st = {}) {
       }
     }
     const text = textOf(m.content).trim();
-    if (text.startsWith('[Request interrupted by user')) { ev('assistant.turn_end'); return out; } // Esc: nothing more is coming
+    if (text.startsWith('[Request interrupted by user')) { ev('assistant.turn_end', { interrupted: true }); return out; } // Esc: nothing more is coming, even if a tool was still running
     if (text && !(e.promptId && e.promptId === st.localPrompt) && !synthetic(text) && !(Array.isArray(m.content) && m.content.some(b => b?.type === 'tool_result'))) ev('user.message', { content: text });
   } else if (e.type === 'assistant') {
     const blocks = Array.isArray(m.content) ? m.content : [];

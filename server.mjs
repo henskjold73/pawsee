@@ -336,10 +336,10 @@ function handle(s, ev) {
       for (const [k, p] of s.pending) if (p.agentId === (ev.agentId || null)) s.pending.delete(k); // a finished turn can't still be waiting
       if (!ev.agentId) {
         const m = mainOf(s);
-        if (m.status === 'running' && m.lastMsgTools === 0) { m.status = 'idle'; m.endedAt = ts; }
+        if (m.status === 'running' && (m.lastMsgTools === 0 || d.interrupted)) { m.status = 'idle'; m.endedAt = ts; }
       } else if (s.agents.has(ev.agentId)) {
         const a = s.agents.get(ev.agentId);
-        if (a.status === 'running' && a.lastMsgTools === 0) { a.status = 'idle'; a.endedAt = ts; }
+        if (a.status === 'running' && (a.lastMsgTools === 0 || d.interrupted)) { a.status = 'idle'; a.endedAt = ts; }
       }
       break;
     case 'assistant.message':
@@ -551,13 +551,13 @@ function snapshot() {
         card.said = card.saidFull = '';
       }
       if (mainWaits.length) card = { ...card, ...waitCard('main', card.name, 'main agent', mainWaits), tools: card.tools, effort: card.effort, label: undefined };
-      agents.push({ ...card, session: sid.slice(0, 8), sessionName: s.meta.name, project: basename(s.meta.cwd || ''), branch: s.meta.branch });
+      agents.push({ ...card, session: sid.slice(0, 8), source: s.product ? 'claude' : 'copilot', sessionName: s.meta.name, project: basename(s.meta.cwd || ''), branch: s.meta.branch });
     }
     for (const a of s.agents.values()) {
       const mine = waits.filter(p => p.agentId === a.id);
       if (mine.length) {
         agents.push({ ...a, ...waitCard(a.id, a.name, a.type, mine), description: a.description, model: a.model, mode: a.mode, tools: a.tools,
-          session: sid.slice(0, 8), sessionName: s.meta.name, project: basename(s.meta.cwd || ''), branch: s.meta.branch });
+          session: sid.slice(0, 8), source: s.product ? 'claude' : 'copilot', sessionName: s.meta.name, project: basename(s.meta.cwd || ''), branch: s.meta.branch });
         continue;
       }
       let status = a.status;
@@ -567,7 +567,7 @@ function snapshot() {
         if (end < s.lastUserAt) continue;                       // left over from a previous task
         if (now - end > FADE_MS) continue; // finished a while ago
       }
-      agents.push({ ...a, status, asksParent: status === 'idle' && /\?\s*$/.test(a.saidFull || ''), session: sid.slice(0, 8), sessionName: s.meta.name,
+      agents.push({ ...a, status, asksParent: status === 'idle' && /\?\s*$/.test(a.saidFull || ''), session: sid.slice(0, 8), source: s.product ? 'claude' : 'copilot', sessionName: s.meta.name,
         project: basename(s.meta.cwd || ''), branch: s.meta.branch });
     }
   }
