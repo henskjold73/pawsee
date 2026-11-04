@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { parseArgs } from 'node:util';
 import { createRequire } from 'node:module';
+import { titleFromPrompt } from './title.mjs';
 
 // set when running as the single-file binary: assets are embedded instead of read from disk
 const sea = (() => { try { const m = createRequire(import.meta.url)('node:sea'); return m.isSea() ? m : null; } catch { return null; } })();
@@ -116,6 +117,14 @@ function getAgent(s, id, ts) {
   return a;
 }
 
+// the main (parent) agent of a session: same shape as a sub-agent, built lazily
+const mainOf = s => (s.main ??= { status: 'idle', startedAt: 0, endedAt: null, activity: '', activityFull: '', activityAt: 0,
+  kind: 'think', tools: 0, said: '', saidFull: '', lastMsgTools: 0, effort: null });
+function wakeMain(m, ts) {
+  if (m.status === 'running') return;
+  Object.assign(m, { status: 'running', startedAt: ts, endedAt: null, tools: 0, activityAt: ts });
+}
+
 // a finished/napping agent that gets new work (write_agent) is running again
 function wake(a, ts, why, newRun = false) {
   if (a.status === 'running') return;
@@ -161,7 +170,15 @@ function handle(s, line) {
       }
       break;
     case 'user.message':
-      if (!ev.agentId) { s.lastUserAt = ts; s.pending.clear(); break; } // the user's own prompt starts a new task, so old questions are moot
+      if (!ev.agentId) { // the user's own prompt starts a new task, so old questions are moot
+        s.lastUserAt = ts; s.pending.clear();
+        const title = titleFromPrompt(d.content); // null for "yes", "now?" and the like: keep the previous title
+        if (title) { s.promptTitle = title; s.promptFull = clip(d.content, 1500, true); }
+        const m = mainOf(s);
+        Object.assign(m, { status: 'running', startedAt: ts, endedAt: null, tools: 0, activityAt: ts, kind: 'think',
+          activity: `reading your prompt: ${clip(d.content, 120)}`, activityFull: clip(d.content, 2000, true), said: '', saidFull: '' });
+        break;
+      }
       if (s.agents.has(ev.agentId)) { // instructions sent to a sub-agent (first task, or a resume)
         const a = s.agents.get(ev.agentId);
         const t = clip(d.content, 140);
@@ -171,7 +188,7 @@ function handle(s, line) {
     case 'session.usage_record': { // AI credits: Copilot reports nano-AIU per model call
       const credits = (d.usage?.copilotUsage?.totalNanoAiu || 0) / 1e9;
       s.aic += credits;
-      if (!ev.agentId) s.mainAic += credits;
+      if (!ev.agentId) { s.mainAic += credits; if (d.usage?.reasoningEffort) mainOf(s).effort = d.usage.reasoningEffort; }
       else if (s.agents.has(ev.agentId)) {
         const a = s.agents.get(ev.agentId);
         a.aic += credits;
@@ -196,6 +213,13 @@ function handle(s, line) {
         s.pending.set(d.toolCallId, { agentId: ev.agentId || null, ts, verb: 'question', text: clip(m, 140), detail: clip([m, ...fields].join('\n'), 2000, true) });
         break;
       }
+      if (!ev.agentId) { // the main agent working
+        const m = mainOf(s);
+        wakeMain(m, ts);
+        Object.assign(m, { activity: describeTool(d), activityFull: fullTool(d), activityAt: ts, kind: kindOf(d.toolName) });
+        m.tools += 1;
+        break;
+      }
       if (ev.agentId && s.agents.has(ev.agentId)) {
         const a = s.agents.get(ev.agentId);
         wake(a, ts);
@@ -204,13 +228,21 @@ function handle(s, line) {
       break;
     case 'assistant.turn_end': // a turn whose last message asked for no tools means the agent is done for now
       for (const [k, p] of s.pending) if (p.agentId === (ev.agentId || null)) s.pending.delete(k); // a finished turn can't still be waiting
-      if (ev.agentId && s.agents.has(ev.agentId)) {
+      if (!ev.agentId) {
+        const m = mainOf(s);
+        if (m.status === 'running' && m.lastMsgTools === 0) { m.status = 'idle'; m.endedAt = ts; }
+      } else if (s.agents.has(ev.agentId)) {
         const a = s.agents.get(ev.agentId);
         if (a.status === 'running' && a.lastMsgTools === 0) { a.status = 'idle'; a.endedAt = ts; }
       }
       break;
     case 'assistant.message':
-      if (ev.agentId && s.agents.has(ev.agentId)) {
+      if (!ev.agentId) {
+        const m = mainOf(s);
+        wakeMain(m, ts);
+        m.lastMsgTools = d.toolRequests?.length || 0;
+        if (d.content?.trim()) { m.said = clip(d.content.replace(/[#*`>_]+/g, ''), 220); m.saidFull = clip(d.content, 4000, true); }
+      } else if (s.agents.has(ev.agentId)) {
         const a = s.agents.get(ev.agentId);
         wake(a, ts);
         a.lastMsgTools = d.toolRequests?.length || 0;
@@ -251,8 +283,7 @@ function pump(id, dir) {
       }
       if (!(line.startsWith('{"type":"subagent.') || line.startsWith('{"type":"user.message"') || line.startsWith('{"type":"system.notification"') ||
         line.startsWith('{"type":"permission.') || line.startsWith('{"type":"session.usage_record"') || line.startsWith('{"type":"assistant.turn_end"') ||
-        (line.startsWith('{"type":"tool.execution_start"') && (line.includes('"agentId":"') || line.includes('"toolName":"ask_user"'))) ||
-        (line.startsWith('{"type":"assistant.message"') && line.includes('"agentId":"')))) continue;
+        line.startsWith('{"type":"tool.execution_start"') || line.startsWith('{"type":"assistant.message"'))) continue;
       try { handle(s, line); changed = true; } catch {}
     }
   }
@@ -294,9 +325,24 @@ function snapshot() {
         activityAt: first.ts, tools: undefined, waitingSince: first.ts, aic: s.mainAic };
     };
     const mainWaits = waits.filter(p => !p.agentId);
-    if (mainWaits.length) {
-      agents.push({ ...waitCard('main', s.meta.name || 'Copilot', 'main agent', mainWaits), session: sid.slice(0, 8),
-        sessionName: s.meta.name, project: basename(s.meta.cwd || ''), branch: s.meta.branch });
+    const m = s.main;
+    const working = [...s.agents.values()].filter(a => a.status === 'running').length;
+    const mainLive = s.alive && m && m.startedAt && (m.status === 'running' || working > 0 || now - (m.endedAt ?? m.activityAt) <= FADE_MS);
+    if (mainLive || mainWaits.length) {
+      const base = m || mainOf(s);
+      const idle = base.status === 'idle';
+      let card = { id: 'main', name: s.promptTitle || s.meta.name || 'Copilot', type: 'main agent', description: s.promptFull || '', model: '', mode: 'sync',
+        status: base.status, kind: base.kind, startedAt: base.startedAt || now, endedAt: base.endedAt, activity: base.activity,
+        activityFull: base.activityFull, said: base.said, saidFull: base.saidFull, activityAt: base.activityAt || now,
+        tools: base.tools, aic: s.mainAic, effort: base.effort,
+        label: idle ? (working ? 'waiting on agents' : 'your turn') : undefined };
+      if (s.promptFull && base.activityFull) card.activityFull = `${base.activityFull}\n\n— current prompt —\n${s.promptFull}`;
+      if (idle && working) {
+        card.activity = card.activityFull = `waiting on ${working} background agent${working > 1 ? 's' : ''} to finish`;
+        card.said = card.saidFull = '';
+      }
+      if (mainWaits.length) card = { ...card, ...waitCard('main', card.name, 'main agent', mainWaits), tools: card.tools, effort: card.effort, label: undefined };
+      agents.push({ ...card, session: sid.slice(0, 8), sessionName: s.meta.name, project: basename(s.meta.cwd || ''), branch: s.meta.branch });
     }
     for (const a of s.agents.values()) {
       const mine = waits.filter(p => p.agentId === a.id);

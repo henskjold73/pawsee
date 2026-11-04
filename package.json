@@ -1,6 +1,6 @@
 {
   "name": "pawsee",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Cute animated paws that show what your GitHub Copilot CLI background agents are doing",
   "type": "module",
   "bin": {
@@ -8,6 +8,7 @@
   },
   "files": [
     "server.mjs",
+    "title.mjs",
     "public"
   ],
   "engines": {

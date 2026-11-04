@@ -149,3 +149,8 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 [data-lv="1"] .toe{animation:none!important}
 [data-lv="1"][data-status=running] .paw{animation-duration:6s}
 [data-lv="1"] .pbadge .bob,[data-lv="1"] .prop *,[data-lv="1"] .prop{animation:none!important}
+
+/* the main agent wears a crown */
+.paw .crown{display:none}
+[data-main] .paw .crown{display:inline}
+.crown .gem{transform-box:fill-box;transform-origin:center;animation:twinkle 4s ease-in-out infinite}

@@ -52,6 +52,12 @@ function pawSvg() {
       <circle class="cheek" cx="33" cy="73" r="3.5" fill="var(--bean)" opacity=".35"/><circle class="cheek" cx="67" cy="73" r="3.5" fill="var(--bean)" opacity=".35"/>
       <path class="brows" d="M35 59.5l8-2.6M65 59.5l-8-2.6" stroke="#3b2f2f" stroke-width="2.3" stroke-linecap="round" fill="none"/>
     </g>
+    <g class="crown" transform="translate(50 9) rotate(-5)">
+      <path d="M-15 8L-17 -8L-8 -1L0 -12L8 -1L17 -8L15 8Z" fill="#f6c945" stroke="#c9961a" stroke-width="2" stroke-linejoin="round"/>
+      <rect x="-15" y="5" width="30" height="5.5" rx="2" fill="#e8b32c" stroke="#c9961a" stroke-width="1.6"/>
+      <circle cx="-17" cy="-8" r="2.3" fill="#fff3b0" stroke="#c9961a" stroke-width="1.3"/><circle cx="0" cy="-12" r="2.3" fill="#fff3b0" stroke="#c9961a" stroke-width="1.3"/><circle cx="17" cy="-8" r="2.3" fill="#fff3b0" stroke="#c9961a" stroke-width="1.3"/>
+      <circle class="gem" cx="0" cy="7.8" r="2" fill="var(--bean)"/>
+    </g>
     <g fill="#f6c945">
       <path class="fx-spark spark1" transform="translate(112 54)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/><path class="fx-spark spark2" transform="translate(-1 48)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/>
       <path class="fx-spark spark3" transform="translate(22 -8)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/><path class="fx-spark spark4" transform="translate(106 90)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/></g>
@@ -182,11 +188,12 @@ function render(snap) {
       cards.set(key, el);
     }
     el.dataset.status = a.status;
+    el.toggleAttribute('data-main', a.type === 'main agent'); // the one in charge wears a crown
     el.dataset.lv = LEVEL[a.effort] || 2;
-    el.classList.toggle('fading', ['done', 'failed', 'lost', 'idle'].includes(a.status) && now - (a.endedAt ?? a.activityAt) > fadeMs - 15e3);
+    el.classList.toggle('fading', a.label !== 'waiting on agents' && ['done', 'failed', 'lost', 'idle'].includes(a.status) && now - (a.endedAt ?? a.activityAt) > fadeMs - 15e3);
     el.dataset.kind = a.kind || 'think';
-    el.querySelector('.name').textContent = a.name.replace(/[-_]+/g, ' ');
-    el.querySelector('.badge').textContent = LABEL[a.status];
+    el.querySelector('.name').textContent = a.type === 'main agent' ? a.name : a.name.replace(/[-_]+/g, ' '); // agent names are slugs; a prompt title is already prose
+    el.querySelector('.badge').textContent = a.label || LABEL[a.status];
     const tb = el.querySelector('.typebadge'), type = a.type && a.type !== 'general-purpose' ? a.type.replace(/[-_]+/g, ' ') : '';
     tb.hidden = !type; tb.textContent = type;
     el.querySelector('.sub').textContent = [a.project, a.branch].filter(Boolean).join(' · ');
