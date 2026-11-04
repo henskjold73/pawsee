@@ -435,7 +435,7 @@ function snapshot() {
   const rank = { waiting: 0, running: 1, idle: 2, failed: 3, done: 4, lost: 5 };
   // grouped by state, then in the order agents started, so cards only move when an agent changes state
   agents.sort((x, y) => rank[x.status] - rank[y.status] || x.startedAt - y.startedAt || (x.id < y.id ? -1 : 1));
-  return { now, agents, fadeMs: FADE_MS, aic: Object.values(usage).reduce((x, y) => x + y, 0), aicSessions: Object.keys(usage).length };
+  return { now, agents, version: pkg.version, fadeMs: FADE_MS, aic: Object.values(usage).reduce((x, y) => x + y, 0), aicSessions: Object.keys(usage).length };
 }
 
 // ---- http ----

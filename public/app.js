@@ -173,6 +173,7 @@ const demo = now => {
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 function render(snap) {
+  if (snap.version) document.getElementById('ver').textContent = 'v' + snap.version;
   // FLIP: remember where every card is now (including mid-slide), so reordering can glide instead of jump
   const before = new Map();
   for (const el of cards.values()) {
