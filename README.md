@@ -4,6 +4,9 @@ Cute animated paws that show what your **GitHub Copilot CLI** and **Claude Code*
 One card per agent: a paw that acts out the work (browsing, coding, exploring, running commands…),
 what it's doing right now, and what it just did.
 
+![pawsee showing a grid of agents: a crowned main agent asking a question, working paws with thought bubbles and a finished one](docs/screenshot.jpg)
+*The `?demo` page: sample agents in every state.*
+
 pawsee only **reads** the session logs they already write: `~/.copilot/session-state` for Copilot CLI and `~/.claude/projects` for Claude Code.
 Nothing leaves your machine — the page is served on `localhost` only.
 
