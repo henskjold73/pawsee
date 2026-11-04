@@ -43,7 +43,12 @@ The binaries aren't code-signed, so a browser download will be flagged: on macOS
 - **Windows, after the PowerShell installer:** the PATH change only reaches *new* terminals, and the latest installer also updates the
   window you ran it in. If you installed with an older copy, open a new PowerShell window, or run it by its full path:
   `& "$env:LOCALAPPDATA\pawsee\pawsee.exe"`. `where.exe pawsee` shows whether Windows can find it.
-- **Windows, after `npm install -g`:** the folder printed by `npm prefix -g` (usually `%APPDATA%\npm`) has to be on your PATH.
+- **Windows, after `npm install -g`:** the folder printed by `npm prefix -g` (usually `%APPDATA%\npm`) has to be on your PATH. If it
+  already is, the terminal you're in probably started before that was true (Node installed or PATH edited after it opened). Refresh
+  this window from the registry instead of restarting it:
+  `$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')`
+- **No restart at all on Windows:** the PowerShell installer above updates the window it runs in, and `npx -y github:henskjold73/pawsee`
+  never needs PATH.
 - **macOS / Linux:** the installer puts `pawsee` in `~/.local/bin`, which isn't on PATH by default. Add
   `export PATH="$HOME/.local/bin:$PATH"` to `~/.zshrc` (or `~/.bashrc`) and open a new terminal, or run `~/.local/bin/pawsee` directly.
 
