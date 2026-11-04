@@ -1,0 +1,11 @@
+{
+  "name": "pawsee",
+  "version": "0.1.0",
+  "description": "Cute animated paws that show what your GitHub Copilot CLI background agents are doing",
+  "type": "module",
+  "bin": { "pawsee": "server.mjs" },
+  "files": ["server.mjs", "public"],
+  "engines": { "node": ">=18" },
+  "keywords": ["copilot", "copilot-cli", "agents", "dashboard"],
+  "license": "MIT"
+}
