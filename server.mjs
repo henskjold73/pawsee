@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // pawsee — tails Copilot CLI session logs and streams agent state to the browser.
 import { createServer } from 'node:http';
-import { readFileSync, readdirSync, statSync, openSync, readSync, closeSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, openSync, readSync, closeSync, existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, basename, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +9,7 @@ import { spawn } from 'node:child_process';
 import { parseArgs } from 'node:util';
 import { createRequire } from 'node:module';
 import { titleFromPrompt } from './title.mjs';
+import { translate } from './claude.mjs';
 
 // set when running as the single-file binary: assets are embedded instead of read from disk
 const sea = (() => { try { const m = createRequire(import.meta.url)('node:sea'); return m.isSea() ? m : null; } catch { return null; } })();
@@ -17,6 +18,8 @@ const { values: opt } = parseArgs({
   options: {
     port: { type: 'string', short: 'p' },
     dir: { type: 'string' },
+    'claude-dir': { type: 'string' },
+    logos: { type: 'string' },
     'no-open': { type: 'boolean' },
     help: { type: 'boolean', short: 'h' },
     version: { type: 'boolean', short: 'v' },
@@ -25,11 +28,13 @@ const { values: opt } = parseArgs({
 const pkg = JSON.parse(sea ? Buffer.from(sea.getAsset('package.json')).toString() : readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 if (opt.version) { console.log(pkg.version); process.exit(0); }
 if (opt.help) {
-  console.log(`pawsee ${pkg.version} — animated paws for your Copilot CLI agents
+  console.log(`pawsee ${pkg.version} — animated paws for your Copilot CLI and Claude Code agents
 
 Usage: pawsee [options]
   -p, --port <n>   port to serve on (default 4747, or $PORT)
       --dir <path> Copilot session-state folder (default ~/.copilot/session-state)
+      --claude-dir <path>  Claude Code projects folder (default ~/.claude/projects)
+      --logos <path>       folder of your own skill images (default ~/.pawsee/logos)
       --no-open    don't open the browser
   -h, --help       show this help
   -v, --version    show the version`);
@@ -38,6 +43,9 @@ Usage: pawsee [options]
 
 const PORT = Number(opt.port || process.env.PORT || 4747);
 const ROOT = opt.dir || process.env.COPILOT_STATE || join(homedir(), '.copilot', 'session-state');
+const CLAUDE_HOME = process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude');
+const CLAUDE_ROOT = opt['claude-dir'] || join(CLAUDE_HOME, 'projects');
+const LOGO_DIR = opt.logos || process.env.PAWSEE_LOGOS || join(homedir(), '.pawsee', 'logos');
 const MAX_AGE_MS = Number(process.env.PAWSEE_HOURS || 24) * 3600e3;
 const FADE_MS = Number(process.env.PAWSEE_FADE_SECONDS || 240) * 1000; // finished agents leave after this
 const PUBLIC = join(fileURLToPath(new URL('.', import.meta.url)), 'public');
@@ -85,7 +93,34 @@ const HOST_BRAND = [[/(^|\.)github(usercontent)?\.com$/, 'github'], [/(^|\.)(dev
   [/(^|\.)(python|pypi)\.org$/, 'python'], [/(^|\.)typescriptlang\.org$/, 'typescript'], [/(^|\.)vitest\.dev$/, 'vitest'], [/(^|\.)eslint\.org$/, 'eslint'],
   [/(^|\.)prettier\.io$/, 'prettier'], [/(^|\.)docker\.com$/, 'docker'], [/(^|\.)nx\.dev$/, 'nx'], [/(^|\.)git-scm\.com$/, 'git'],
   [/(^|\.)playwright\.dev$/, 'playwright'], [/(^|\.)dotnet\.microsoft\.com$/, 'dotnet']];
+// your own images: <logos>/<skill>.png|jpg|webp|gif|svg, shown in the bubble when an agent uses that skill (or tool / command of the same name)
+const IMG_MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.svg': 'image/svg+xml' };
+const slug = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+let customLogos = new Map(); // slug -> { file, v }
+function loadLogos() {
+  const next = new Map();
+  try {
+    for (const f of readdirSync(LOGO_DIR).sort()) {
+      const ext = extname(f).toLowerCase();
+      if (!IMG_MIME[ext]) continue;
+      const key = slug(basename(f, extname(f)));
+      if (key && !next.has(key)) next.set(key, { file: f, v: Math.floor(statSync(join(LOGO_DIR, f)).mtimeMs) });
+    }
+  } catch {}
+  customLogos = next;
+}
+function customBrand(d) {
+  if (!customLogos.size) return null;
+  const tool = d.toolName || '', a = d.arguments || {};
+  const names = tool === 'skill' ? [a.skill, String(a.skill || '').split(':').pop()]
+    : ['bash', 'read_bash', 'write_bash', 'powershell'].includes(tool) ? String(a.command || '').split(/&&|\|\||;|\||\n/).map(seg => seg.trim().split(/\s+/).filter(w => !/^\w+=/.test(w) && !['sudo', 'time', 'env', 'command'].includes(w))[0])
+    : [tool.split('-')[0]];
+  for (const n of names) { const k = slug(n); if (customLogos.has(k)) return 'custom:' + k; }
+  return null;
+}
 function brandOf(d) {
+  const custom = customBrand(d);
+  if (custom) return custom;
   const tool = d.toolName || '', a = d.arguments || {};
   if (tool.startsWith('github-')) return 'github';
   if (tool.startsWith('ado-')) return 'ado';
@@ -106,6 +141,7 @@ function describeTool(d) {
     (a.command && `$ ${a.command}`) ||
     (a.path && `${d.toolName} ${basename(a.path)}`) ||
     (a.pattern && `${d.toolName} “${a.pattern}”`) ||
+    (a.url && `${d.toolName} ${a.url.replace(/^https?:\/\//, '')}`) ||
     (a.skill && `skill ${a.skill}`) ||
     d.toolName;
   return clip(what);
@@ -166,12 +202,10 @@ function wakeMain(m, ts) {
 }
 
 // a tool call finished: failures make the agent "worried" (consecutive count), a success calms it down
-function trackResult(s, who, success, line) {
+function trackResult(s, who, success, msg = '', ts = Date.now()) {
   const t = who ? s.agents.get(who) : mainOf(s);
   if (!t) return;
   if (success) { t.worry = 0; return; }
-  let msg = '', ts = Date.now();
-  try { const e = JSON.parse(line); msg = e.data?.error?.message || ''; ts = Date.parse(e.timestamp) || ts; } catch {}
   t.worry = (t.worry || 0) + 1; t.fails = (t.fails || 0) + 1; t.worryAt = ts; t.lastError = clip(msg, 200);
 }
 
@@ -183,8 +217,17 @@ function wake(a, ts, why, newRun = false) {
   if (why) { a.activity = why; a.activityFull = why; }
 }
 
-function handle(s, line) {
-  const ev = JSON.parse(line);
+// a tool call finished: answers ask_user, and records the success / failure of every call
+function complete(s, toolCallId, success, msg, ts) {
+  let changed = s.pending.delete(toolCallId);
+  if (s.owner.has(toolCallId)) {
+    const who = s.owner.get(toolCallId); s.owner.delete(toolCallId);
+    if (typeof success === 'boolean') { trackResult(s, who, success, msg, ts); changed = true; }
+  }
+  return changed;
+}
+
+function handle(s, ev) {
   const d = ev.data || {};
   const ts = Date.parse(ev.timestamp) || Date.now();
   switch (ev.type) {
@@ -225,7 +268,8 @@ function handle(s, line) {
         const title = titleFromPrompt(d.content); // null for "yes", "now?" and the like: keep the previous title
         if (title) { s.promptTitle = title; s.promptFull = clip(d.content, 1500, true); }
         const m = mainOf(s);
-        Object.assign(m, { status: 'running', startedAt: ts, endedAt: null, tools: 0, activityAt: ts, kind: 'think',
+        Object.assign(m, { status: 'running', startedAt: ts, endedAt: null, tools: 0, activityAt: ts, kind: 'think', worry: 0, worryAt: 0, lastError: '', fails: 0, // a new task starts with a clean slate
+         
           activity: `reading your prompt: ${clip(d.content, 120)}`, activityFull: clip(d.content, 2000, true), said: '', saidFull: '' });
         break;
       }
@@ -316,6 +360,25 @@ function handle(s, line) {
   }
 }
 
+// read what was appended to a log since last time, as complete lines
+function readNew(st, file) {
+  const size = statSync(file).size;
+  if (size < st.offset) { st.offset = 0; st.partial = ''; st.reset = true; }
+  const lines = [];
+  while (st.offset < size) {
+    const len = Math.min(size - st.offset, 8 << 20);
+    const buf = Buffer.alloc(len);
+    const fd = openSync(file, 'r');
+    readSync(fd, buf, 0, len, st.offset);
+    closeSync(fd);
+    st.offset += len;
+    const parts = (st.partial + buf.toString('utf8')).split('\n');
+    st.partial = parts.pop();
+    lines.push(...parts);
+  }
+  return lines;
+}
+
 function pump(id, dir) {
   const file = join(dir, 'events.jsonl');
   let s = sessions.get(id);
@@ -323,37 +386,112 @@ function pump(id, dir) {
     s = { offset: 0, partial: '', meta: readMeta(dir), agents: new Map(), calls: new Map(), alive: false, lastUserAt: 0, pending: new Map(), aic: 0, mainAic: 0, owner: new Map() };
     sessions.set(id, s);
   }
-  const size = statSync(file).size;
-  if (size < s.offset) { s.offset = 0; s.partial = ''; s.agents.clear(); }
+  const lines = readNew(s, file);
+  if (s.reset) { s.reset = false; s.agents.clear(); }
   let changed = false;
-  while (s.offset < size) {
-    const len = Math.min(size - s.offset, 8 << 20);
-    const buf = Buffer.alloc(len);
-    const fd = openSync(file, 'r');
-    readSync(fd, buf, 0, len, s.offset);
-    closeSync(fd);
-    s.offset += len;
-    const text = s.partial + buf.toString('utf8');
-    const lines = text.split('\n');
-    s.partial = lines.pop();
-    for (const line of lines) {
-      // cheap prefilter: skip the huge reasoning/model snapshot lines
-      if (line.startsWith('{"type":"tool.execution_complete"')) { // answered ask_user, and success / failure of every call
-        const head = line.slice(0, 700), m = head.match(/"toolCallId":"([^"]+)"/);
-        if (m) {
-          if (s.pending.delete(m[1])) changed = true;
-          if (s.owner.has(m[1])) {
-            const who = s.owner.get(m[1]); s.owner.delete(m[1]);
-            const ok = head.match(/"success":(true|false)/);
-            if (ok) { trackResult(s, who, ok[1] === 'true', line); changed = true; }
-          }
-        }
-        continue;
+  for (const line of lines) {
+    // cheap prefilter: skip the huge reasoning/model snapshot lines
+    if (line.startsWith('{"type":"tool.execution_complete"')) {
+      const head = line.slice(0, 700), m = head.match(/"toolCallId":"([^"]+)"/);
+      if (m) {
+        const ok = head.match(/"success":(true|false)/);
+        let msg, ts;
+        if (ok?.[1] === 'false') try { const e = JSON.parse(line); msg = e.data?.error?.message; ts = Date.parse(e.timestamp) || undefined; } catch {}
+        if (complete(s, m[1], ok ? ok[1] === 'true' : undefined, msg, ts)) changed = true;
       }
-      if (!(line.startsWith('{"type":"subagent.') || line.startsWith('{"type":"user.message"') || line.startsWith('{"type":"system.notification"') ||
-        line.startsWith('{"type":"permission.') || line.startsWith('{"type":"session.task_complete"') || line.startsWith('{"type":"session.usage_record"') || line.startsWith('{"type":"assistant.turn_end"') ||
-        line.startsWith('{"type":"tool.execution_start"') || line.startsWith('{"type":"assistant.message"'))) continue;
-      try { handle(s, line); changed = true; } catch {}
+      continue;
+    }
+    if (!(line.startsWith('{"type":"subagent.') || line.startsWith('{"type":"user.message"') || line.startsWith('{"type":"system.notification"') ||
+      line.startsWith('{"type":"permission.') || line.startsWith('{"type":"session.task_complete"') || line.startsWith('{"type":"session.usage_record"') || line.startsWith('{"type":"assistant.turn_end"') ||
+      line.startsWith('{"type":"tool.execution_start"') || line.startsWith('{"type":"assistant.message"'))) continue;
+    try { handle(s, JSON.parse(line)); changed = true; } catch {}
+  }
+  return changed;
+}
+
+// ---- Claude Code: <project>/<session>.jsonl, with sub-agents in <session>/subagents/agent-<id>.jsonl ----
+function feedClaude(s, line, agentId, st) {
+  let changed = false;
+  let e;
+  try { e = JSON.parse(line); } catch { return false; }
+  if (e.cwd && !s.meta.cwd) s.meta.cwd = e.cwd;
+  if (e.gitBranch && e.gitBranch !== 'HEAD') s.meta.branch = e.gitBranch;
+  for (const ev of translate(e, agentId, st)) {
+    if (ev.type === 'tool.execution_complete') {
+      const d = ev.data;
+      if (complete(s, d.toolCallId, d.success, d.error?.message, Date.parse(ev.timestamp) || undefined)) changed = true;
+      continue;
+    }
+    try { handle(s, ev); changed = true; } catch {}
+  }
+  return changed;
+}
+
+function pumpClaude(id, file, subDir) {
+  let s = sessions.get(id);
+  if (!s) {
+    s = { offset: 0, partial: '', meta: { name: '', cwd: '', branch: '' }, product: 'Claude Code', files: new Map(), agents: new Map(), calls: new Map(),
+      alive: false, lastUserAt: 0, pending: new Map(), aic: 0, mainAic: 0, owner: new Map() };
+    sessions.set(id, s);
+  }
+  let changed = false;
+  const lines = readNew(s, file);
+  if (s.reset) { s.reset = false; s.agents.clear(); s.files.clear(); }
+  for (const l of lines) if (feedClaude(s, l, null, (s.cst ??= {}))) changed = true;
+  let subs = [];
+  try { subs = readdirSync(subDir).filter(f => /^agent-.+\.jsonl$/.test(f)); } catch {}
+  for (const f of subs) {
+    const agentId = f.slice(6, -6), sf = join(subDir, f);
+    try {
+      if (!s.files.has(agentId)) {
+        if (Date.now() - statSync(sf).mtimeMs > MAX_AGE_MS) continue;
+        let meta = {}; try { meta = JSON.parse(readFileSync(sf.replace(/\.jsonl$/, '.meta.json'), 'utf8')); } catch {}
+        const first = readFileSync(sf, 'utf8').slice(0, 4000).match(/"timestamp":"([^"]+)"/)?.[1] || new Date().toISOString();
+        s.files.set(agentId, { offset: 0, partial: '' });
+        handle(s, { type: 'subagent.started', timestamp: first, agentId, data: { agentDisplayName: meta.agentType || 'agent', agentType: meta.agentType,
+          agentDescription: meta.description || '', executionMode: meta.requestShape === 'background' ? 'background' : 'sync' } });
+        changed = true;
+      }
+      const st = s.files.get(agentId);
+      for (const l of readNew(st, sf)) if (feedClaude(s, l, agentId, st)) changed = true;
+    } catch {}
+  }
+  return changed;
+}
+
+// Claude Code keeps a registry of its running sessions in ~/.claude/sessions/<pid>.json
+function claudeLive() {
+  const live = new Set();
+  try {
+    for (const f of readdirSync(join(CLAUDE_HOME, 'sessions'))) {
+      if (!f.endsWith('.json')) continue;
+      try {
+        const r = JSON.parse(readFileSync(join(CLAUDE_HOME, 'sessions', f), 'utf8'));
+        try { process.kill(r.pid, 0); live.add(r.sessionId); } catch (e) { if (e.code === 'EPERM') live.add(r.sessionId); }
+      } catch {}
+    }
+  } catch {}
+  return live;
+}
+
+function scanClaude(now) {
+  let changed = false;
+  let projects = [];
+  try { projects = readdirSync(CLAUDE_ROOT); } catch { return false; }
+  const live = claudeLive();
+  for (const p of projects) {
+    let files = [];
+    try { files = readdirSync(join(CLAUDE_ROOT, p)).filter(f => f.endsWith('.jsonl')); } catch { continue; }
+    for (const f of files) {
+      const id = f.slice(0, -6), file = join(CLAUDE_ROOT, p, f);
+      try {
+        const st = statSync(file);
+        if (now - st.mtimeMs > MAX_AGE_MS && !sessions.has(id)) continue;
+        if (pumpClaude(id, file, join(CLAUDE_ROOT, p, id, 'subagents'))) changed = true;
+        const s = sessions.get(id);
+        const alive = live.has(id) || now - st.mtimeMs < 60e3;
+        if (alive !== s.alive) { s.alive = alive; changed = true; }
+      } catch {}
     }
   }
   return changed;
@@ -361,8 +499,9 @@ function pump(id, dir) {
 
 function scan() {
   let changed = false;
+  loadLogos();
   let dirs = [];
-  try { dirs = readdirSync(ROOT); } catch { return false; }
+  try { dirs = readdirSync(ROOT); } catch {}
   const now = Date.now();
   for (const id of dirs) {
     const dir = join(ROOT, id);
@@ -377,6 +516,7 @@ function scan() {
       if (alive !== s.alive) { s.alive = alive; changed = true; }
     } catch {}
   }
+  if (scanClaude(now)) changed = true;
   return changed;
 }
 
@@ -400,7 +540,7 @@ function snapshot() {
     if (mainLive || mainWaits.length) {
       const base = m || mainOf(s);
       const idle = base.status === 'idle';
-      let card = { id: 'main', name: s.promptTitle || s.meta.name || 'Copilot', type: 'main agent', description: s.promptFull || '', model: '', mode: 'sync',
+      let card = { id: 'main', name: s.promptTitle || s.meta.name || s.product || 'Copilot', type: 'main agent', description: s.promptFull || '', model: '', mode: 'sync',
         status: base.status, kind: base.kind, startedAt: base.startedAt || now, endedAt: base.endedAt, activity: base.activity,
         activityFull: base.activityFull, said: base.said, saidFull: base.saidFull, activityAt: base.activityAt || now,
         tools: base.tools, aic: s.mainAic, effort: base.effort, brand: base.brand, brandAt: base.brandAt, worry: base.worry || 0, worryAt: base.worryAt || 0, lastError: base.lastError || '', fails: base.fails || 0,
@@ -435,7 +575,7 @@ function snapshot() {
   const rank = { waiting: 0, running: 1, idle: 2, failed: 3, done: 4, lost: 5 };
   // grouped by state, then in the order agents started, so cards only move when an agent changes state
   agents.sort((x, y) => rank[x.status] - rank[y.status] || x.startedAt - y.startedAt || (x.id < y.id ? -1 : 1));
-  return { now, agents, version: pkg.version, fadeMs: FADE_MS, aic: Object.values(usage).reduce((x, y) => x + y, 0), aicSessions: Object.keys(usage).length };
+  return { now, agents, logos: Object.fromEntries([...customLogos].map(([k, l]) => [k, `/logos/${encodeURIComponent(l.file)}?v=${l.v}`])), version: pkg.version, fadeMs: FADE_MS, aic: Object.values(usage).reduce((x, y) => x + y, 0), aicSessions: Object.keys(usage).length };
 }
 
 // ---- http ----
@@ -467,6 +607,12 @@ const server = createServer((req, res) => {
     res.writeHead(200, { 'content-type': 'application/json' });
     return res.end(JSON.stringify(snapshot()));
   }
+  if (url.pathname.startsWith('/logos/')) {
+    const f = decodeURIComponent(url.pathname.slice(7));
+    if (![...customLogos.values()].some(l => l.file === f)) { res.writeHead(404); return res.end('not found'); }
+    try { const img = readFileSync(join(LOGO_DIR, f)); res.writeHead(200, { 'content-type': IMG_MIME[extname(f).toLowerCase()], 'cache-control': 'max-age=60' }); return res.end(img); }
+    catch { res.writeHead(404); return res.end('not found'); }
+  }
   const body = asset(url.pathname === '/' ? 'index.html' : url.pathname.slice(1));
   if (!body) { res.writeHead(404); return res.end('not found'); }
   res.writeHead(200, { 'content-type': MIME[extname(url.pathname === '/' ? 'index.html' : url.pathname)] || 'application/octet-stream' });
@@ -485,10 +631,11 @@ server.on('error', e => {
     : e.message);
   process.exit(1);
 });
+try { mkdirSync(LOGO_DIR, { recursive: true }); } catch {}
 server.listen(PORT, '127.0.0.1', () => {
   const url = `http://localhost:${PORT}`;
-  console.log(`🐾 pawsee watching ${ROOT}\n   ${url}`);
-  if (!existsSync(ROOT)) console.log(`   (no Copilot sessions found at that path yet — start Copilot CLI and paws will appear)`);
+  console.log(`🐾 pawsee watching ${ROOT}\n   and ${CLAUDE_ROOT}\n   your skill images: ${LOGO_DIR}\n   ${url}`);
+  if (!existsSync(ROOT) && !existsSync(CLAUDE_ROOT)) console.log(`   (no Copilot CLI or Claude Code sessions found yet — start one and paws will appear)`);
   if (!opt['no-open']) openBrowser(url);
 });
 

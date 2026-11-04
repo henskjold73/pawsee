@@ -72,6 +72,7 @@ function pawSvg() {
         <circle class="trail1" cx="-22" cy="19" r="4.2" fill="var(--card)" stroke="var(--line)" stroke-width="1.8"/>
         <circle class="trail2" cx="-29" cy="27" r="2.6" fill="var(--card)" stroke="var(--line)" stroke-width="1.5"/>
         <circle class="plate" r="12.6" fill="#fff"/>
+        <g class="brandicon b-custom"><image x="-9.5" y="-9.5" width="19" height="19" preserveAspectRatio="xMidYMid meet"/></g>
         ${Object.entries(BRAND_ICONS).map(([k, svg]) => `<g class="brandicon b-${k}">${svg}</g>`).join('')}
       </g>
       <g class="prop p-web" fill="none" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round">
@@ -220,6 +221,8 @@ function render(snap) {
     if (a.status === 'running' && a.worry > 0 && now - a.worryAt < 15e3) el.dataset.worried = Math.min(a.worry, 3); else delete el.dataset.worried;
     // thinking about a skill / connector it just used: the round badge turns into a thought bubble with its logo
     if (a.status === 'running' && a.brand && now - a.brandAt < 12e3) el.dataset.brand = a.brand; else delete el.dataset.brand;
+    const logo = a.brand?.startsWith('custom:') && snap.logos?.[a.brand.slice(7)];
+    if (logo) { const im = el.querySelector('.b-custom image'); if (im.getAttribute('href') !== logo) im.setAttribute('href', logo); }
     el.classList.toggle('fading', a.label !== 'waiting on agents' && ['done', 'failed', 'lost', 'idle'].includes(a.status) && now - (a.endedAt ?? a.activityAt) > fadeMs - 15e3);
     el.dataset.kind = a.kind || 'think';
     el.querySelector('.name').textContent = a.type === 'main agent' ? a.name : a.name.replace(/[-_]+/g, ' '); // agent names are slugs; a prompt title is already prose
