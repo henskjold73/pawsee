@@ -65,4 +65,15 @@ jobs:
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" out/* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes
+        run: |
+          # GitHub's API returns the odd 5xx; retry, and reuse a half-created release if one exists
+          for i in 1 2 3 4; do
+            if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              gh release upload "$GITHUB_REF_NAME" out/* --repo "$GITHUB_REPOSITORY" --clobber \
+                && gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false && break
+            else
+              gh release create "$GITHUB_REF_NAME" out/* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes && break
+            fi
+            echo "attempt $i failed; retrying"; sleep 15
+          done
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json isDraft -q '.isDraft' | grep -qx false
