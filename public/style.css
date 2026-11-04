@@ -117,3 +117,23 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 .card.open .doing{position:absolute;inset:0;margin:0;z-index:2;display:block;-webkit-line-clamp:unset;overflow:auto;
   padding:12px 14px;border-radius:16px;background:var(--bg);white-space:pre-wrap;font-size:14px;outline:none}
 .card.open .doing::after{content:'click to close';display:block;margin-top:10px;font-size:11px;color:var(--muted)}
+
+/* title may grow and wrap; status badge sits inside the animation frame, top left */
+.name{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.25;font-size:16px}
+.stage{position:relative}
+.stage .badge{position:absolute;top:10px;left:10px;margin:0;z-index:1}
+
+/* waiting for a person: a question or an approval */
+:root{--wait:#f0a43a}
+[data-status=waiting] .badge{background:var(--wait);color:#3b2f2f}
+.card[data-status=waiting]{border-color:var(--wait);animation:pop .35s ease-out,nudge 4s ease-in-out infinite}
+[data-status=waiting] .pbadge{display:inline}
+[data-status=waiting] .paw{animation:wave 4s ease-in-out infinite;transform-origin:50% 90%}
+[data-status=waiting] .doing{background:color-mix(in srgb,var(--wait) 18%,var(--bg));font-weight:600}
+@keyframes nudge{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 0 5px color-mix(in srgb,var(--wait) 28%,transparent)}}
+
+/* specific agent type (anything but general-purpose), bottom left of the frame */
+.typebadge{position:absolute;left:10px;bottom:10px;z-index:1;max-width:calc(100% - 20px);font-size:11px;font-weight:700;letter-spacing:.03em;
+  padding:2px 9px;border-radius:99px;background:var(--card);color:var(--ink);border:1.5px solid color-mix(in srgb,var(--paw-dark) 45%,transparent);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.typebadge[hidden]{display:none}

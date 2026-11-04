@@ -109,7 +109,7 @@ function sessionAlive(dir) {
 function getAgent(s, id, ts) {
   let a = s.agents.get(id);
   if (!a) {
-    a = { id, name: 'agent', type: '', description: '', model: '', mode: 'sync', status: 'running', kind: 'think',
+    a = { id, name: 'agent', type: '', description: '', model: '', mode: 'sync', status: 'running', kind: 'think', aic: 0,
       startedAt: ts, endedAt: null, activity: 'starting up…', activityAt: ts, tools: 0, tokens: 0 };
     s.agents.set(id, a);
   }
@@ -158,14 +158,37 @@ function handle(s, line) {
       }
       break;
     case 'user.message':
-      if (!ev.agentId) { s.lastUserAt = ts; break; } // the user's own prompt starts a new task
+      if (!ev.agentId) { s.lastUserAt = ts; s.pending.clear(); break; } // the user's own prompt starts a new task, so old questions are moot
       if (s.agents.has(ev.agentId)) { // instructions sent to a sub-agent (first task, or a resume)
         const a = s.agents.get(ev.agentId);
         const t = clip(d.content, 140);
         wake(a, ts, t ? `got a task: ${t}` : '', true);
       }
       break;
+    case 'session.usage_record': { // AI credits: Copilot reports nano-AIU per model call
+      const credits = (d.usage?.copilotUsage?.totalNanoAiu || 0) / 1e9;
+      s.aic += credits;
+      if (!ev.agentId) s.mainAic += credits;
+      else if (s.agents.has(ev.agentId)) s.agents.get(ev.agentId).aic += credits;
+      break;
+    }
+    case 'permission.requested': { // waiting for the person to approve something
+      const r = d.permissionRequest || {};
+      const what = r.intention || `${r.kind || 'action'} permission`;
+      const detail = [what, r.fullCommandText && `$ ${r.fullCommandText}`, r.url, r.path || r.fileName].filter(Boolean).join('\n');
+      s.pending.set(d.requestId, { agentId: ev.agentId || null, ts, verb: 'approval', text: clip(what, 140), detail: clip(detail, 1500, true) });
+      break;
+    }
+    case 'permission.completed':
+      s.pending.delete(d.requestId);
+      break;
     case 'tool.execution_start':
+      if (d.toolName === 'ask_user') { // a question for the person
+        const m = String(d.arguments?.message || 'has a question');
+        const fields = Object.values(d.arguments?.requestedSchema?.properties || {}).map(p => `• ${p.title || ''}${p.description ? ': ' + p.description : ''}`);
+        s.pending.set(d.toolCallId, { agentId: ev.agentId || null, ts, verb: 'question', text: clip(m, 140), detail: clip([m, ...fields].join('\n'), 2000, true) });
+        break;
+      }
       if (ev.agentId && s.agents.has(ev.agentId)) {
         const a = s.agents.get(ev.agentId);
         wake(a, ts);
@@ -173,6 +196,7 @@ function handle(s, line) {
       }
       break;
     case 'assistant.turn_end': // a turn whose last message asked for no tools means the agent is done for now
+      for (const [k, p] of s.pending) if (p.agentId === (ev.agentId || null)) s.pending.delete(k); // a finished turn can't still be waiting
       if (ev.agentId && s.agents.has(ev.agentId)) {
         const a = s.agents.get(ev.agentId);
         if (a.status === 'running' && a.lastMsgTools === 0) { a.status = 'idle'; a.endedAt = ts; }
@@ -195,7 +219,7 @@ function pump(id, dir) {
   const file = join(dir, 'events.jsonl');
   let s = sessions.get(id);
   if (!s) {
-    s = { offset: 0, partial: '', meta: readMeta(dir), agents: new Map(), calls: new Map(), alive: false, lastUserAt: 0 };
+    s = { offset: 0, partial: '', meta: readMeta(dir), agents: new Map(), calls: new Map(), alive: false, lastUserAt: 0, pending: new Map(), aic: 0, mainAic: 0 };
     sessions.set(id, s);
   }
   const size = statSync(file).size;
@@ -213,10 +237,15 @@ function pump(id, dir) {
     s.partial = lines.pop();
     for (const line of lines) {
       // cheap prefilter: skip the huge reasoning/model snapshot lines
+      if (line.startsWith('{"type":"tool.execution_complete"')) { // an ask_user the person has now answered
+        const m = line.match(/"toolCallId":"([^"]+)"/);
+        if (m && s.pending.delete(m[1])) changed = true;
+        continue;
+      }
       if (!(line.startsWith('{"type":"subagent.') || line.startsWith('{"type":"user.message"') || line.startsWith('{"type":"system.notification"') ||
-        ((line.startsWith('{"type":"tool.execution_start"') || line.startsWith('{"type":"assistant.message"') ||
-          line.startsWith('{"type":"assistant.turn_end"')) &&
-          line.includes('"agentId":"')))) continue;
+        line.startsWith('{"type":"permission.') || line.startsWith('{"type":"session.usage_record"') || line.startsWith('{"type":"assistant.turn_end"') ||
+        (line.startsWith('{"type":"tool.execution_start"') && (line.includes('"agentId":"') || line.includes('"toolName":"ask_user"'))) ||
+        (line.startsWith('{"type":"assistant.message"') && line.includes('"agentId":"')))) continue;
       try { handle(s, line); changed = true; } catch {}
     }
   }
@@ -247,8 +276,28 @@ function scan() {
 function snapshot() {
   const now = Date.now();
   const agents = [];
+  const usage = {};
   for (const [sid, s] of sessions) {
+    const waits = s.alive ? [...s.pending.values()] : [];
+    const waitCard = (id, name, type, items) => {
+      const first = items[0];
+      return { id, name, type, description: '', model: '', mode: 'sync', status: 'waiting', kind: 'ask', startedAt: first.ts, endedAt: null,
+        activity: `${first.verb === 'question' ? 'asks:' : 'needs your approval:'} ${first.text}${items.length > 1 ? ` (+${items.length - 1} more)` : ''}`,
+        activityFull: items.map(i => `${i.verb === 'question' ? 'Question' : 'Approval needed'}\n${i.detail}`).join('\n\n—\n\n'),
+        activityAt: first.ts, tools: undefined, waitingSince: first.ts, aic: s.mainAic };
+    };
+    const mainWaits = waits.filter(p => !p.agentId);
+    if (mainWaits.length) {
+      agents.push({ ...waitCard('main', s.meta.name || 'Copilot', 'main agent', mainWaits), session: sid.slice(0, 8),
+        sessionName: s.meta.name, project: basename(s.meta.cwd || ''), branch: s.meta.branch });
+    }
     for (const a of s.agents.values()) {
+      const mine = waits.filter(p => p.agentId === a.id);
+      if (mine.length) {
+        agents.push({ ...a, ...waitCard(a.id, a.name, a.type, mine), description: a.description, model: a.model, mode: a.mode, tools: a.tools,
+          session: sid.slice(0, 8), sessionName: s.meta.name, project: basename(s.meta.cwd || ''), branch: s.meta.branch });
+        continue;
+      }
       let status = a.status;
       if ((status === 'running' || status === 'idle') && !s.alive) status = 'lost';
       if (status !== 'running') {
@@ -256,13 +305,14 @@ function snapshot() {
         if (end < s.lastUserAt) continue;                       // left over from a previous task
         if (now - end > FADE_MS) continue; // finished a while ago
       }
-      agents.push({ ...a, status, session: sid.slice(0, 8), sessionName: s.meta.name,
+      agents.push({ ...a, status, asksParent: status === 'idle' && /\?\s*$/.test(a.saidFull || ''), session: sid.slice(0, 8), sessionName: s.meta.name,
         project: basename(s.meta.cwd || ''), branch: s.meta.branch });
     }
   }
-  const rank = { running: 0, idle: 1, failed: 2, done: 3, lost: 4 };
+  for (const a of agents) usage[a.session] ??= sessions.get([...sessions.keys()].find(k => k.startsWith(a.session))).aic;
+  const rank = { waiting: 0, running: 1, idle: 2, failed: 3, done: 4, lost: 5 };
   agents.sort((x, y) => rank[x.status] - rank[y.status] || (y.endedAt ?? y.activityAt) - (x.endedAt ?? x.activityAt));
-  return { now, agents, fadeMs: FADE_MS };
+  return { now, agents, fadeMs: FADE_MS, aic: Object.values(usage).reduce((x, y) => x + y, 0), aicSessions: Object.keys(usage).length };
 }
 
 // ---- http ----

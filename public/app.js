@@ -22,7 +22,7 @@ function hueOf(key) {
   try { localStorage.setItem('pawsee-hues', JSON.stringify(hues)); } catch {}
   return best;
 }
-const LABEL = { running: 'working', idle: 'napping', done: 'done', failed: 'failed', lost: 'lost' };
+const LABEL = { waiting: 'needs you', running: 'working', idle: 'napping', done: 'done', failed: 'failed', lost: 'lost' };
 
 function pawSvg() {
   // main pad + four toe beans, with a tiny face on the pad
@@ -70,6 +70,9 @@ function pawSvg() {
   </svg>`;
 }
 
+// AI credits: fewer decimals as the number grows
+const fmtAic = n => n >= 100 ? Math.round(n).toLocaleString() : n >= 10 ? n.toFixed(1) : n.toFixed(2);
+
 function dur(ms) {
   const s = Math.max(0, Math.round(ms / 1000));
   if (s < 60) return s + 's';
@@ -80,6 +83,7 @@ const ago = ms => dur(ms) + ' ago';
 
 function doingHtml(a, full) {
   const act = (full && a.activityFull) || a.activity, said = (full && a.saidFull) || a.said;
+  if (a.status === 'waiting') return `<span class="lead">✋</span>${esc(act)}`;
   if (a.status === 'running') return `<span class="lead">now</span>${esc(act)}<span class="dots"><span>.</span><span>.</span><span>.</span></span>`;
   if (a.status === 'failed') return `<span class="lead">oops</span>${esc(act)}`;
   if (a.status === 'lost') return `<span class="lead">last seen</span>${esc(act)}`;
@@ -90,9 +94,12 @@ function doingHtml(a, full) {
 
 function metaHtml(a, now) {
   const live = a.status === 'running';
-  const t = live ? `⏱ ${dur(now - a.startedAt)}` : a.status === 'idle' ? `💤 ${ago(now - a.endedAt)}`
+  const t = a.status === 'waiting' ? `⏳ waiting ${dur(now - a.waitingSince)}` : live ? `⏱ ${dur(now - a.startedAt)}` : a.status === 'idle' ? `💤 ${ago(now - a.endedAt)}`
     : `✓ ${a.durationMs ? 'took ' + dur(a.durationMs) : ago(now - (a.endedAt ?? a.startedAt))}`;
-  const tags = [`<span class="tag">${t}</span>`, `<span class="tag">🔧 ${a.tools}</span>`];
+  const tags = [`<span class="tag">${t}</span>`];
+  if (a.tools != null) tags.push(`<span class="tag">🔧 ${a.tools}</span>`);
+  if (a.aic > 0) tags.push(`<span class="tag" title="AI credits used by this agent">⚡ ${fmtAic(a.aic)} AIC</span>`);
+  if (a.asksParent) tags.push('<span class="tag">❓ ends with a question</span>');
   if (KIND[a.kind]) tags.push(`<span class="tag">${KIND[a.kind]}</span>`);
   if (a.mode === 'async') tags.push('<span class="tag">background</span>');
   if (a.model) tags.push(`<span class="tag">${esc(a.model)}</span>`);
@@ -109,11 +116,16 @@ const demo = now => {
   const rest = ['idle', 'done', 'failed', 'lost'].map((status, i) => ({ id: 's' + i, session: 'demo', status, kind: 'code',
     name: ['demo-idle', 'demo-done', 'demo-failed', 'demo-lost'][i], tools: 9, startedAt: now - 95e3, endedAt: now - 20e3,
     durationMs: 75e3, activity: 'Edited 3 files', said: 'Wrapped up and all checks pass.' }));
-  return [...run, ...rest].map(a => ({ type: 'general-purpose', project: 'pawsee', branch: 'demo', mode: 'sync', model: 'demo', ...a }));
+  const wait = [
+    { id: 'w0', name: 'main', type: 'main agent', status: 'waiting', kind: 'ask', waitingSince: now - 70e3, startedAt: now - 70e3,
+      activity: 'asks: Which branch should I base the fix on?', activityFull: 'Question\nWhich branch should I base the fix on?\n• Branch: main or the release branch' },
+    { id: 'w1', name: 'demo-fix-lint', status: 'waiting', kind: 'ask', waitingSince: now - 25e3, startedAt: now - 90e3, tools: 12,
+      activity: 'needs your approval: Run the test suite', activityFull: 'Approval needed\nRun the test suite\n$ npm test -- --coverage' }];
+  return [...wait, ...run, ...rest].map(a => ({ type: { explore: 'explore', code: 'code-review', shell: 'task' }[a.kind] || 'general-purpose', project: 'pawsee', branch: 'demo', mode: 'sync', model: 'demo', ...a }));
 };
 
 function render(snap) {
-  if (DEMO) snap = { now: snap.now, agents: demo(snap.now) };
+  if (DEMO) { const ag = demo(snap.now); ag.forEach((x, i) => { x.aic = 3.2 + i * 9.7; }); snap = { now: snap.now, agents: ag, aic: 214.6, aicSessions: 1 }; }
   const { now } = snap;
   const agents = snap.agents, fadeMs = snap.fadeMs || 240e3;
   const seen = new Set();
@@ -124,7 +136,7 @@ function render(snap) {
     if (!el) {
       el = document.createElement('article');
       el.className = 'card';
-      el.innerHTML = `<div class="stage">${pawSvg()}</div><div class="body"><div class="top"><span class="name"></span><span class="badge"></span></div>
+      el.innerHTML = `<div class="stage"><span class="badge"></span><span class="typebadge" hidden></span>${pawSvg()}</div><div class="body"><div class="top"><span class="name"></span></div>
         <div class="sub"></div><div class="doing"></div><div class="meta"></div></div>`;
       el.style.setProperty('--h', hueOf(key));
       const doing = el.querySelector('.doing');
@@ -138,9 +150,11 @@ function render(snap) {
     el.dataset.status = a.status;
     el.classList.toggle('fading', ['done', 'failed', 'lost', 'idle'].includes(a.status) && now - (a.endedAt ?? a.activityAt) > fadeMs - 15e3);
     el.dataset.kind = a.kind || 'think';
-    el.querySelector('.name').textContent = a.name;
+    el.querySelector('.name').textContent = a.name.replace(/[-_]+/g, ' ');
     el.querySelector('.badge').textContent = LABEL[a.status];
-    el.querySelector('.sub').textContent = [a.type, a.project, a.branch].filter(Boolean).join(' · ');
+    const tb = el.querySelector('.typebadge'), type = a.type && a.type !== 'general-purpose' ? a.type.replace(/[-_]+/g, ' ') : '';
+    tb.hidden = !type; tb.textContent = type;
+    el.querySelector('.sub').textContent = [a.project, a.branch].filter(Boolean).join(' · ');
     el.title = [a.description, a.sessionName].filter(Boolean).join('\n');
     el.querySelector('.doing').innerHTML = doingHtml(a, el.classList.contains('open'));
     el.querySelector('.meta').innerHTML = metaHtml(a, now);
@@ -149,9 +163,12 @@ function render(snap) {
   for (const [k, el] of cards) if (!seen.has(k)) { el.remove(); cards.delete(k); }
 
   const n = s => agents.filter(a => a.status === s).length;
-  summary.innerHTML = [['working', n('running')], ['napping', n('idle')], ['failed', n('failed')], ['done', n('done')]]
-    .filter(([, c]) => c).map(([l, c]) => `<span><b>${c}</b> ${l}</span>`).join('') || '<span>all quiet</span>';
+  const credits = snap.aic > 0 ? `<span title="All AI credits used so far in the Copilot session${snap.aicSessions > 1 ? 's' : ''} shown here: the main agent, every agent, and earlier tasks"><b>⚡ ${fmtAic(snap.aic)}</b> AIC ${snap.aicSessions > 1 ? 'across sessions' : 'this session'}</span>` : '';
+  summary.innerHTML = [['need you', n('waiting')], ['working', n('running')], ['napping', n('idle')], ['failed', n('failed')], ['done', n('done')]]
+    .filter(([, c]) => c).map(([l, c]) => `<span><b>${c}</b> ${l}</span>`).join('') + credits || '<span>all quiet</span>';
   empty.hidden = agents.length > 0;
+  const waiting = n('waiting');
+  document.title = waiting ? `(${waiting}) needs you · pawsee` : 'pawsee';
 }
 
 let last;

@@ -50,12 +50,14 @@ The binaries aren't code-signed, so a browser download will be flagged: on macOS
 
 | Paw | Meaning |
 |---|---|
+| needs you (amber) | the main agent asked you a question, or an agent is waiting for your approval |
 | working, with a badge | an agent is running; the badge shows what kind of work |
 | napping | an agent finished its turn and is waiting for a new message |
 | done | finished; done and napping cards fade away after ~4 minutes (`PAWSEE_FADE_SECONDS`) |
 | failed | the agent errored |
 | grey | its Copilot session ended while it was still running |
 
+Each card also shows the AI credits (AIC) that agent has used, and the header shows the session total.
 Agents left over from before your latest prompt in a session are hidden, so the page only shows the current task.
 Add `?demo` to the URL to preview every state with sample data.
 
