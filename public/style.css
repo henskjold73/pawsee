@@ -53,7 +53,6 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 [data-status=done] .paw{animation:hop 6s ease-in-out infinite}
 [data-status=failed] .eye-open{display:none}[data-status=failed] .eye-x,[data-status=failed] .sweat{display:inline}
 [data-status=failed] .paw{animation:shake .8s ease-in-out 2}
-[data-status=lost] .paw{filter:grayscale(.9)}
 [data-status=lost] .eye-open{display:none}[data-status=lost] .eye-closed{display:inline}
 
 @keyframes pop{from{transform:scale(.92);opacity:0}}
@@ -104,7 +103,6 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 .card{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch;padding:12px}
 .stage{aspect-ratio:1;display:grid;place-items:center;border-radius:16px;background:hsl(var(--h,25) 90% 94%);transition:background .3s}
 @media (prefers-color-scheme:dark){.stage{background:hsl(var(--h,25) 25% 21%)}}
-.card[data-status=lost] .stage{background:var(--bg)}
 .stage .paw{width:86%;height:auto;margin:0}
 .body{display:flex;flex-direction:column;justify-content:center;padding:2px 2px 2px 0}
 .doing{-webkit-line-clamp:4}
