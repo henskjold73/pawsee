@@ -38,6 +38,15 @@ The binaries aren't code-signed, so a browser download will be flagged: on macOS
 `xattr -d com.apple.quarantine pawsee` once; on Windows choose *More info → Run anyway* in SmartScreen.
 (The one-line installers above don't trigger either warning.)
 
+### "pawsee" is not recognized / command not found
+
+- **Windows, after the PowerShell installer:** the PATH change only reaches *new* terminals, and the latest installer also updates the
+  window you ran it in. If you installed with an older copy, open a new PowerShell window, or run it by its full path:
+  `& "$env:LOCALAPPDATA\pawsee\pawsee.exe"`. `where.exe pawsee` shows whether Windows can find it.
+- **Windows, after `npm install -g`:** the folder printed by `npm prefix -g` (usually `%APPDATA%\npm`) has to be on your PATH.
+- **macOS / Linux:** the installer puts `pawsee` in `~/.local/bin`, which isn't on PATH by default. Add
+  `export PATH="$HOME/.local/bin:$PATH"` to `~/.zshrc` (or `~/.bashrc`) and open a new terminal, or run `~/.local/bin/pawsee` directly.
+
 ### Options
 
 | Flag | Meaning |

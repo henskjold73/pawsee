@@ -30,5 +30,9 @@ mkdir -p "$DIR"
 install -m 755 "$tmp/pawsee" "$DIR/pawsee"
 
 echo "Installed pawsee to $DIR/pawsee"
-case ":$PATH:" in *":$DIR:"*) ;; *) echo "Add $DIR to your PATH to run it as 'pawsee'." ;; esac
-echo "Run: pawsee"
+case ":$PATH:" in
+  *":$DIR:"*) echo "Run: pawsee" ;;
+  *) echo "$DIR is not on your PATH yet. Run it now with:  $DIR/pawsee"
+     echo "To run it as 'pawsee' from anywhere, add this line to ~/.zshrc (or ~/.bashrc) and open a new terminal:"
+     echo "  export PATH=\"$DIR:\$PATH\"" ;;
+esac
