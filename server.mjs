@@ -7,6 +7,10 @@ import { join, basename, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { parseArgs } from 'node:util';
+import { createRequire } from 'node:module';
+
+// set when running as the single-file binary: assets are embedded instead of read from disk
+const sea = (() => { try { const m = createRequire(import.meta.url)('node:sea'); return m.isSea() ? m : null; } catch { return null; } })();
 
 const { values: opt } = parseArgs({
   options: {
@@ -17,7 +21,7 @@ const { values: opt } = parseArgs({
     version: { type: 'boolean', short: 'v' },
   },
 });
-const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
+const pkg = JSON.parse(sea ? Buffer.from(sea.getAsset('package.json')).toString() : readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 if (opt.version) { console.log(pkg.version); process.exit(0); }
 if (opt.help) {
   console.log(`pawsee ${pkg.version} — animated paws for your Copilot CLI agents
@@ -112,6 +116,14 @@ function getAgent(s, id, ts) {
   return a;
 }
 
+// a finished/napping agent that gets new work (write_agent) is running again
+function wake(a, ts, why, newRun = false) {
+  if (a.status === 'running') return;
+  Object.assign(a, { status: 'running', endedAt: null, activityAt: ts });
+  if (newRun) a.startedAt = ts;
+  if (why) { a.activity = why; a.activityFull = why; }
+}
+
 function handle(s, line) {
   const ev = JSON.parse(line);
   const d = ev.data || {};
@@ -141,24 +153,39 @@ function handle(s, line) {
     }
     case 'system.notification':
       if (d.kind?.type === 'agent_idle' && s.agents.has(d.kind.agentId)) {
-        const a = s.agents.get(d.kind.agentId);
-        if (a.status === 'running') { a.status = 'idle'; a.endedAt = ts; }
+        const a = s.agents.get(d.kind.agentId); // finished its turn, still resumable
+        if (a.status === 'running' || a.status === 'done') { a.status = 'idle'; a.endedAt = ts; }
       }
       break;
-    case 'user.message': // the user's own prompt (not a sub-agent's) starts a new task
-      if (!ev.agentId) s.lastUserAt = ts;
+    case 'user.message':
+      if (!ev.agentId) { s.lastUserAt = ts; break; } // the user's own prompt starts a new task
+      if (s.agents.has(ev.agentId)) { // instructions sent to a sub-agent (first task, or a resume)
+        const a = s.agents.get(ev.agentId);
+        const t = clip(d.content, 140);
+        wake(a, ts, t ? `got a task: ${t}` : '', true);
+      }
       break;
     case 'tool.execution_start':
       if (ev.agentId && s.agents.has(ev.agentId)) {
         const a = s.agents.get(ev.agentId);
-        a.activity = describeTool(d); a.activityFull = fullTool(d); a.activityAt = ts; a.kind = kindOf(d.toolName); a.tools = Math.max(a.tools, 0) + 1;
-        if (a.status === 'idle') { a.status = 'running'; a.endedAt = null; } // woken by a new message
+        wake(a, ts);
+        a.activity = describeTool(d); a.activityFull = fullTool(d); a.activityAt = ts; a.kind = kindOf(d.toolName); a.tools += 1;
+      }
+      break;
+    case 'assistant.turn_end': // a turn whose last message asked for no tools means the agent is done for now
+      if (ev.agentId && s.agents.has(ev.agentId)) {
+        const a = s.agents.get(ev.agentId);
+        if (a.status === 'running' && a.lastMsgTools === 0) { a.status = 'idle'; a.endedAt = ts; }
       }
       break;
     case 'assistant.message':
-      if (ev.agentId && s.agents.has(ev.agentId) && d.content?.trim()) {
+      if (ev.agentId && s.agents.has(ev.agentId)) {
         const a = s.agents.get(ev.agentId);
-        a.said = clip(d.content.replace(/[#*`>_]+/g, ''), 220); a.saidFull = clip(d.content, 4000, true); a.saidAt = ts;
+        wake(a, ts);
+        a.lastMsgTools = d.toolRequests?.length || 0;
+        if (d.content?.trim()) {
+          a.said = clip(d.content.replace(/[#*`>_]+/g, ''), 220); a.saidFull = clip(d.content, 4000, true); a.saidAt = ts;
+        }
       }
       break;
   }
@@ -187,7 +214,8 @@ function pump(id, dir) {
     for (const line of lines) {
       // cheap prefilter: skip the huge reasoning/model snapshot lines
       if (!(line.startsWith('{"type":"subagent.') || line.startsWith('{"type":"user.message"') || line.startsWith('{"type":"system.notification"') ||
-        ((line.startsWith('{"type":"tool.execution_start"') || line.startsWith('{"type":"assistant.message"')) &&
+        ((line.startsWith('{"type":"tool.execution_start"') || line.startsWith('{"type":"assistant.message"') ||
+          line.startsWith('{"type":"assistant.turn_end"')) &&
           line.includes('"agentId":"')))) continue;
       try { handle(s, line); changed = true; } catch {}
     }
@@ -226,7 +254,7 @@ function snapshot() {
       if (status !== 'running') {
         const end = a.endedAt ?? a.activityAt;
         if (end < s.lastUserAt) continue;                       // left over from a previous task
-        if (status !== 'idle' && now - end > FADE_MS) continue; // finished a while ago
+        if (now - end > FADE_MS) continue; // finished a while ago
       }
       agents.push({ ...a, status, session: sid.slice(0, 8), sessionName: s.meta.name,
         project: basename(s.meta.cwd || ''), branch: s.meta.branch });
@@ -244,6 +272,13 @@ const push = () => {
   for (const c of clients) c.write(data);
 };
 
+const asset = rel => {
+  if (sea) { try { return Buffer.from(sea.getAsset(rel)); } catch { return null; } }
+  const file = join(PUBLIC, rel);
+  if (!file.startsWith(PUBLIC)) return null;
+  try { return readFileSync(file); } catch { return null; }
+};
+
 const MIME = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml' };
 
 const server = createServer((req, res) => {
@@ -259,11 +294,10 @@ const server = createServer((req, res) => {
     res.writeHead(200, { 'content-type': 'application/json' });
     return res.end(JSON.stringify(snapshot()));
   }
-  const rel = url.pathname === '/' ? 'index.html' : url.pathname.slice(1);
-  const file = join(PUBLIC, rel);
-  if (!file.startsWith(PUBLIC) || !existsSync(file)) { res.writeHead(404); return res.end('not found'); }
-  res.writeHead(200, { 'content-type': MIME[extname(file)] || 'application/octet-stream' });
-  res.end(readFileSync(file));
+  const body = asset(url.pathname === '/' ? 'index.html' : url.pathname.slice(1));
+  if (!body) { res.writeHead(404); return res.end('not found'); }
+  res.writeHead(200, { 'content-type': MIME[extname(url.pathname === '/' ? 'index.html' : url.pathname)] || 'application/octet-stream' });
+  res.end(body);
 });
 
 function openBrowser(url) {

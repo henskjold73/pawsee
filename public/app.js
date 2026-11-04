@@ -136,7 +136,7 @@ function render(snap) {
       cards.set(key, el);
     }
     el.dataset.status = a.status;
-    el.classList.toggle('fading', ['done', 'failed', 'lost'].includes(a.status) && now - (a.endedAt ?? a.activityAt) > fadeMs - 15e3);
+    el.classList.toggle('fading', ['done', 'failed', 'lost', 'idle'].includes(a.status) && now - (a.endedAt ?? a.activityAt) > fadeMs - 15e3);
     el.dataset.kind = a.kind || 'think';
     el.querySelector('.name').textContent = a.name;
     el.querySelector('.badge').textContent = LABEL[a.status];
