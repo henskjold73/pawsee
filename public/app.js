@@ -182,6 +182,16 @@ const demo = now => {
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
+// "pawsee can't read some logs": the Copilot CLI / Claude Code log format may have changed under it
+function showProblems(list) {
+  const el = document.getElementById('drift');
+  el.hidden = !list?.length;
+  if (el.hidden) return;
+  const what = p => `${p.source} (${p.sessions} session${p.sessions > 1 ? 's' : ''}, ${p.reason === 'unreadable' ? 'lines that will not parse' : 'nothing recognised'})`;
+  el.innerHTML = `⚠ pawsee can't make sense of some logs: ${list.map(what).join('; ')}. The log format may have changed, so some agents could be missing. `
+    + `<a href="https://github.com/henskjold73/pawsee/issues" target="_blank" rel="noopener">Update pawsee or report it</a>.`;
+}
+
 // "a newer version is out": a small pill by the version, hidden per version when you dismiss it
 function showUpdate(u) {
   const wrap = document.getElementById('updwrap'), link = document.getElementById('upd');
@@ -233,9 +243,10 @@ function render(snap) {
     before.set(el, el.getBoundingClientRect());
     el.getAnimations().forEach(an => { if (an.id === 'move') an.cancel(); });
   }
-  if (DEMO) { const ag = demo(snap.now); ag.forEach((x, i) => { x.aic = 3.2 + i * 9.7; }); snap = { now: snap.now, agents: ag, aic: 214.6, aicSessions: 1, update: { version: '9.9.9', url: 'https://github.com/henskjold73/pawsee/releases' } }; }
+  if (DEMO) { const ag = demo(snap.now); ag.forEach((x, i) => { x.aic = 3.2 + i * 9.7; }); snap = { now: snap.now, agents: ag, aic: 214.6, aicSessions: 1, update: { version: '9.9.9', url: 'https://github.com/henskjold73/pawsee/releases' }, problems: new URLSearchParams(location.search).has('drift') ? [{ source: 'Claude Code', reason: 'unrecognised', sessions: 2 }] : [] }; }
   const { now } = snap;
   showUpdate(snap.update);
+  showProblems(snap.problems);
   const agents = snap.agents, fadeMs = snap.fadeMs || 240e3;
   const seen = new Set();
   agents.forEach((a, i) => {

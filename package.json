@@ -1,7 +1,27 @@
 {
   "name": "pawsee",
   "version": "0.1.9",
-  "description": "Cute animated paws that show what your GitHub Copilot CLI background agents are doing",
+  "description": "Cute animated paws that show what your GitHub Copilot CLI and Claude Code background agents are doing",
+  "keywords": [
+    "copilot",
+    "copilot-cli",
+    "claude-code",
+    "claude",
+    "agents",
+    "subagents",
+    "dashboard",
+    "monitor",
+    "cli"
+  ],
+  "homepage": "https://github.com/henskjold73/pawsee#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/henskjold73/pawsee.git"
+  },
+  "bugs": {
+    "url": "https://github.com/henskjold73/pawsee/issues"
+  },
+  "license": "MIT",
   "type": "module",
   "bin": {
     "pawsee": "server.mjs"
@@ -11,26 +31,24 @@
     "title.mjs",
     "claude.mjs",
     "update.mjs",
+    "health.mjs",
     "public"
   ],
   "engines": {
     "node": ">=18"
   },
-  "keywords": [
-    "copilot",
-    "copilot-cli",
-    "agents",
-    "dashboard"
-  ],
-  "license": "MIT",
-  "devDependencies": {
-    "@stryker-mutator/core": "^10.1.1",
-    "esbuild": "^0.28.2",
-    "postject": "^1.0.0-alpha.6"
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build:binary": "node scripts/build-binary.mjs",
     "test": "node --test",
-    "mutate": "stryker run"
+    "mutate": "stryker run",
+    "prepublishOnly": "npm test"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "^10.1.1",
+    "esbuild": "^0.28.2",
+    "postject": "^1.0.0-alpha.6"
   }
 }

@@ -104,6 +104,7 @@ npm test   # unit tests plus end-to-end tests that run the server against fake C
 
 ## Notes
 
+- If a log format changes under it, pawsee shows a red notice at the top ("can't make sense of some logs") instead of quietly showing fewer agents. It appears when a session has lines that won't parse, or a long session where nothing was recognised. Please [open an issue](https://github.com/henskjold73/pawsee/issues) with the CLI version you use.
 - It relies on the internal log formats of Copilot CLI (tested with 1.0.105) and Claude Code (tested with 2.1.309), which could change in an update.
 - Built for macOS, Windows and Linux by CI; only macOS has been tried by hand so far — issues welcome.
 

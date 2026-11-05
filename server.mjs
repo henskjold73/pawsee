@@ -11,6 +11,7 @@ import { createRequire } from 'node:module';
 import { titleFromPrompt } from './title.mjs';
 import { translate } from './claude.mjs';
 import { isNewer, latestRelease } from './update.mjs';
+import { problemsOf } from './health.mjs';
 
 // set when running as the single-file binary: assets are embedded instead of read from disk
 const sea = (() => { try { const m = createRequire(import.meta.url)('node:sea'); return m.isSea() ? m : null; } catch { return null; } })();
@@ -395,8 +396,10 @@ function pump(id, dir) {
   if (s.reset) { s.reset = false; s.agents.clear(); }
   let changed = false;
   for (const line of lines) {
+    s.lines = (s.lines || 0) + 1;
     // cheap prefilter: skip the huge reasoning/model snapshot lines
     if (line.startsWith('{"type":"tool.execution_complete"')) {
+      s.events = (s.events || 0) + 1;
       const head = line.slice(0, 700), m = head.match(/"toolCallId":"([^"]+)"/);
       if (m) {
         const ok = head.match(/"success":(true|false)/);
@@ -409,7 +412,7 @@ function pump(id, dir) {
     if (!(line.startsWith('{"type":"subagent.') || line.startsWith('{"type":"user.message"') || line.startsWith('{"type":"system.notification"') ||
       line.startsWith('{"type":"permission.') || line.startsWith('{"type":"session.task_complete"') || line.startsWith('{"type":"session.usage_record"') || line.startsWith('{"type":"assistant.turn_end"') ||
       line.startsWith('{"type":"tool.execution_start"') || line.startsWith('{"type":"assistant.message"'))) continue;
-    try { handle(s, JSON.parse(line)); changed = true; } catch {}
+    try { handle(s, JSON.parse(line)); changed = true; s.events = (s.events || 0) + 1; } catch { s.bad = (s.bad || 0) + 1; }
   }
   return changed;
 }
@@ -418,16 +421,18 @@ function pump(id, dir) {
 function feedClaude(s, line, agentId, st) {
   let changed = false;
   let e;
-  try { e = JSON.parse(line); } catch { return false; }
+  s.lines = (s.lines || 0) + 1;
+  try { e = JSON.parse(line); } catch { s.bad = (s.bad || 0) + 1; return false; }
   if (e.cwd && !s.meta.cwd) s.meta.cwd = e.cwd;
   if (e.gitBranch && e.gitBranch !== 'HEAD') s.meta.branch = e.gitBranch;
   for (const ev of translate(e, agentId, st)) {
     if (ev.type === 'tool.execution_complete') {
       const d = ev.data;
+      s.events = (s.events || 0) + 1;
       if (complete(s, d.toolCallId, d.success, d.error?.message, Date.parse(ev.timestamp) || undefined)) changed = true;
       continue;
     }
-    try { handle(s, ev); changed = true; } catch {}
+    try { handle(s, ev); changed = true; s.events = (s.events || 0) + 1; } catch { s.bad = (s.bad || 0) + 1; }
   }
   return changed;
 }
@@ -580,7 +585,7 @@ function snapshot() {
   const rank = { waiting: 0, running: 1, idle: 2, failed: 3, done: 4, lost: 5 };
   // grouped by state, then in the order agents started, so cards only move when an agent changes state
   agents.sort((x, y) => rank[x.status] - rank[y.status] || x.startedAt - y.startedAt || (x.id < y.id ? -1 : 1));
-  return { now, agents, update, logos: Object.fromEntries([...customLogos].map(([k, l]) => [k, `/logos/${encodeURIComponent(l.file)}?v=${l.v}`])), version: pkg.version, fadeMs: FADE_MS, aic: Object.values(usage).reduce((x, y) => x + y, 0), aicSessions: Object.keys(usage).length };
+  return { now, agents, update, problems: problemsOf(sessions.values()), logos: Object.fromEntries([...customLogos].map(([k, l]) => [k, `/logos/${encodeURIComponent(l.file)}?v=${l.v}`])), version: pkg.version, fadeMs: FADE_MS, aic: Object.values(usage).reduce((x, y) => x + y, 0), aicSessions: Object.keys(usage).length };
 }
 
 // ---- update notice: ask GitHub for the latest release at start-up and every few hours ----
