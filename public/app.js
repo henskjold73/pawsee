@@ -216,7 +216,7 @@ function playSound(kind) {
 }
 function showSound() {
   const b = document.getElementById('snd');
-  b.textContent = soundOn ? '🔔' : '🔇';
+  b.textContent = soundOn ? '🔔 Sound on' : '🔇 Sound off';
   b.setAttribute('aria-pressed', String(soundOn));
   b.title = soundOn ? 'Sounds are on: a chime when something needs you, another when work finishes. Click to turn off' : 'Sounds are off. Click to play a soft chime when something needs you or work finishes';
 }

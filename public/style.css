@@ -229,7 +229,8 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 .drift[hidden]{display:none}
 .drift a{color:inherit;font-weight:600}
 
-/* sound toggle */
-.snd{all:unset;cursor:pointer;margin-left:10px;font-size:15px;line-height:1;padding:3px 6px;border-radius:8px;vertical-align:middle;opacity:.55}
-.snd:hover,.snd:focus-visible,.snd[aria-pressed=true]{opacity:1}
+/* sound toggle: a labelled pill, plainly muted when off and lit up when on */
+.snd{all:unset;cursor:pointer;margin-left:10px;font-size:12px;font-weight:600;line-height:1;padding:4px 10px;border-radius:999px;vertical-align:middle;letter-spacing:0;color:var(--muted);border:1px dashed var(--line);white-space:nowrap}
+.snd:hover{color:var(--ink);border-color:var(--muted)}
+.snd[aria-pressed=true]{color:var(--ink);border:1px solid var(--run);background:color-mix(in srgb,var(--run) 22%,var(--card))}
 .snd:focus-visible{outline:2px solid var(--wait);outline-offset:2px}
