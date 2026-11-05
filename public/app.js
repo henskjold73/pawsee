@@ -192,11 +192,10 @@ function showProblems(list) {
     + `<a href="https://github.com/henskjold73/pawsee/issues" target="_blank" rel="noopener">Update pawsee or report it</a>.`;
 }
 
-// soft chimes, off by default, made with the browser's own synth (no sound files). A browser only lets a page make noise after you've clicked it,
-// and switching sounds on is that click.
+// soft chimes, made with the browser's own synth (no sound files). They are off every time the page loads, on purpose: a browser only lets
+// a page make noise after you've clicked it, and switching sounds on is that click.
 const NOTES = { attention: [[784, 0], [988, .16]], finished: [[523, 0], [659, .14], [784, .28]] };
 let soundOn = false, audio = null;
-try { soundOn = localStorage.getItem('pawsee-sound') === '1'; } catch {}
 function playSound(kind) {
   if (!soundOn) return;
   try {
@@ -222,7 +221,6 @@ function showSound() {
 }
 document.getElementById('snd').onclick = () => {
   soundOn = !soundOn;
-  try { localStorage.setItem('pawsee-sound', soundOn ? '1' : '0'); } catch {}
   showSound();
   playSound('attention'); // a preview, and the click that lets the browser play sound
 };
