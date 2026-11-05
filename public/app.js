@@ -201,7 +201,7 @@ function showUpdate(u) {
   if (wrap.hidden) return;
   link.textContent = `⬆ v${u.version} available`;
   if (u.url) link.href = u.url; else link.removeAttribute('href');
-  link.title = 'To update: re-run the installer, or npm install -g github:henskjold73/pawsee, then restart pawsee';
+  link.title = 'To update: re-run the installer, or npm install -g @horrible73/pawsee, then restart pawsee';
   document.getElementById('updx').onclick = () => { try { localStorage.setItem('pawsee-update-hidden', u.version); } catch {} wrap.hidden = true; };
 }
 

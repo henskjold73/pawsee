@@ -32,10 +32,12 @@ check its SHA-256 checksum, and put `pawsee` in `~/.local/bin` (macOS/Linux) or 
 **With Node 18+** (any OS) you can skip the download:
 
 ```sh
-npx github:henskjold73/pawsee
-# or install once:
-npm install -g github:henskjold73/pawsee
+npx @horrible73/pawsee
+# or install once (the command is still just `pawsee`):
+npm install -g @horrible73/pawsee
 ```
+
+(`npx github:henskjold73/pawsee` and `npm install -g github:henskjold73/pawsee` also work, straight from this repository.)
 
 **Manual download:** grab the file for your system from the [releases page](https://github.com/henskjold73/pawsee/releases).
 The binaries aren't code-signed, so a browser download will be flagged: on macOS run
@@ -51,7 +53,7 @@ The binaries aren't code-signed, so a browser download will be flagged: on macOS
   already is, the terminal you're in probably started before that was true (Node installed or PATH edited after it opened). Refresh
   this window from the registry instead of restarting it:
   `$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')`
-- **No restart at all on Windows:** the PowerShell installer above updates the window it runs in, and `npx -y github:henskjold73/pawsee`
+- **No restart at all on Windows:** the PowerShell installer above updates the window it runs in, and `npx -y @horrible73/pawsee`
   never needs PATH.
 - **macOS / Linux:** the installer puts `pawsee` in `~/.local/bin`, which isn't on PATH by default. Add
   `export PATH="$HOME/.local/bin:$PATH"` to `~/.zshrc` (or `~/.bashrc`) and open a new terminal, or run `~/.local/bin/pawsee` directly.
