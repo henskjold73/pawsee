@@ -217,3 +217,9 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 .card.flop .paw{animation:flop 1.6s ease-out;transform-origin:50% 100%}
 @keyframes flop{0%{transform:none}25%{transform:rotate(-18deg) translateY(-4px)}55%{transform:rotate(26deg) translateY(10px)}75%{transform:rotate(18deg) translateY(8px)}100%{transform:none}}
 @media (prefers-reduced-motion:reduce){.confetti{display:none}.card.cheer .paw,.card.flop .paw{animation:none}}
+
+/* update notice */
+.upd{display:inline-flex;align-items:center;gap:2px;margin-left:10px;font-size:12px;font-weight:600;border-radius:999px;background:color-mix(in srgb,var(--wait) 22%,var(--card));border:1px solid var(--wait);vertical-align:middle;letter-spacing:0}
+.upd[hidden]{display:none}
+.upd a{color:inherit;text-decoration:none;padding:2px 4px 2px 10px}.upd a:hover{text-decoration:underline}
+.upd button{all:unset;cursor:pointer;padding:0 9px 1px 4px;opacity:.6}.upd button:hover,.upd button:focus-visible{opacity:1}

@@ -8,7 +8,8 @@ what it's doing right now, and what it just did.
 *The `?demo` page: sample agents in every state.*
 
 pawsee only **reads** the session logs they already write: `~/.copilot/session-state` for Copilot CLI and `~/.claude/projects` for Claude Code.
-Nothing leaves your machine — the page is served on `localhost` only.
+The page is served on `localhost` only, and none of your session data leaves your machine.
+The one network request pawsee makes is a plain check of GitHub's "latest release" at start-up and every 6 hours, to show a small "update available" note (it sends nothing but a User-Agent of `pawsee-update-check`). Turn it off with `--no-update-check` or `PAWSEE_NO_UPDATE_CHECK=1`.
 
 ## Install
 
@@ -63,6 +64,7 @@ The binaries aren't code-signed, so a browser download will be flagged: on macOS
 | `--dir <path>` | Copilot `session-state` folder (default `~/.copilot/session-state`) |
 | `--claude-dir <path>` | Claude Code `projects` folder (default `~/.claude/projects`, or `$CLAUDE_CONFIG_DIR/projects`) |
 | `--no-open` | don't open the browser |
+| `--no-update-check` | don't ask GitHub whether a newer version exists |
 
 ## What you'll see
 

@@ -182,6 +182,19 @@ const demo = now => {
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
+// "a newer version is out": a small pill by the version, hidden per version when you dismiss it
+function showUpdate(u) {
+  const wrap = document.getElementById('updwrap'), link = document.getElementById('upd');
+  let hidden = '';
+  try { hidden = localStorage.getItem('pawsee-update-hidden') || ''; } catch {}
+  wrap.hidden = !u || u.version === hidden;
+  if (wrap.hidden) return;
+  link.textContent = `⬆ v${u.version} available`;
+  if (u.url) link.href = u.url; else link.removeAttribute('href');
+  link.title = 'To update: re-run the installer, or npm install -g github:henskjold73/pawsee, then restart pawsee';
+  document.getElementById('updx').onclick = () => { try { localStorage.setItem('pawsee-update-hidden', u.version); } catch {} wrap.hidden = true; };
+}
+
 // a happy hop with confetti when an agent finishes, a flop when it fails
 function react(el, kind) {
   el.classList.remove('cheer', 'flop');
@@ -220,8 +233,9 @@ function render(snap) {
     before.set(el, el.getBoundingClientRect());
     el.getAnimations().forEach(an => { if (an.id === 'move') an.cancel(); });
   }
-  if (DEMO) { const ag = demo(snap.now); ag.forEach((x, i) => { x.aic = 3.2 + i * 9.7; }); snap = { now: snap.now, agents: ag, aic: 214.6, aicSessions: 1 }; }
+  if (DEMO) { const ag = demo(snap.now); ag.forEach((x, i) => { x.aic = 3.2 + i * 9.7; }); snap = { now: snap.now, agents: ag, aic: 214.6, aicSessions: 1, update: { version: '9.9.9', url: 'https://github.com/henskjold73/pawsee/releases' } }; }
   const { now } = snap;
+  showUpdate(snap.update);
   const agents = snap.agents, fadeMs = snap.fadeMs || 240e3;
   const seen = new Set();
   agents.forEach((a, i) => {

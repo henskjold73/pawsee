@@ -10,6 +10,7 @@
     "server.mjs",
     "title.mjs",
     "claude.mjs",
+    "update.mjs",
     "public"
   ],
   "engines": {

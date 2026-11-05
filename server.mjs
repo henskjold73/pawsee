@@ -10,6 +10,7 @@ import { parseArgs } from 'node:util';
 import { createRequire } from 'node:module';
 import { titleFromPrompt } from './title.mjs';
 import { translate } from './claude.mjs';
+import { isNewer, latestRelease } from './update.mjs';
 
 // set when running as the single-file binary: assets are embedded instead of read from disk
 const sea = (() => { try { const m = createRequire(import.meta.url)('node:sea'); return m.isSea() ? m : null; } catch { return null; } })();
@@ -20,6 +21,7 @@ const { values: opt } = parseArgs({
     dir: { type: 'string' },
     'claude-dir': { type: 'string' },
     logos: { type: 'string' },
+    'no-update-check': { type: 'boolean' },
     'no-open': { type: 'boolean' },
     help: { type: 'boolean', short: 'h' },
     version: { type: 'boolean', short: 'v' },
@@ -35,6 +37,7 @@ Usage: pawsee [options]
       --dir <path> Copilot session-state folder (default ~/.copilot/session-state)
       --claude-dir <path>  Claude Code projects folder (default ~/.claude/projects)
       --logos <path>       folder of your own skill images (default ~/.pawsee/logos)
+      --no-update-check    don't ask GitHub whether a newer version exists (or set PAWSEE_NO_UPDATE_CHECK=1)
       --no-open    don't open the browser
   -h, --help       show this help
   -v, --version    show the version`);
@@ -46,6 +49,8 @@ const ROOT = opt.dir || process.env.COPILOT_STATE || join(homedir(), '.copilot',
 const CLAUDE_HOME = process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude');
 const CLAUDE_ROOT = opt['claude-dir'] || join(CLAUDE_HOME, 'projects');
 const LOGO_DIR = opt.logos || process.env.PAWSEE_LOGOS || join(homedir(), '.pawsee', 'logos');
+const UPDATE_CHECK = !opt['no-update-check'] && !process.env.PAWSEE_NO_UPDATE_CHECK;
+const UPDATE_URL = process.env.PAWSEE_UPDATE_URL || 'https://api.github.com/repos/henskjold73/pawsee/releases/latest';
 const MAX_AGE_MS = Number(process.env.PAWSEE_HOURS || 24) * 3600e3;
 const FADE_MS = Number(process.env.PAWSEE_FADE_SECONDS || 240) * 1000; // finished agents leave after this
 const PUBLIC = join(fileURLToPath(new URL('.', import.meta.url)), 'public');
@@ -575,7 +580,15 @@ function snapshot() {
   const rank = { waiting: 0, running: 1, idle: 2, failed: 3, done: 4, lost: 5 };
   // grouped by state, then in the order agents started, so cards only move when an agent changes state
   agents.sort((x, y) => rank[x.status] - rank[y.status] || x.startedAt - y.startedAt || (x.id < y.id ? -1 : 1));
-  return { now, agents, logos: Object.fromEntries([...customLogos].map(([k, l]) => [k, `/logos/${encodeURIComponent(l.file)}?v=${l.v}`])), version: pkg.version, fadeMs: FADE_MS, aic: Object.values(usage).reduce((x, y) => x + y, 0), aicSessions: Object.keys(usage).length };
+  return { now, agents, update, logos: Object.fromEntries([...customLogos].map(([k, l]) => [k, `/logos/${encodeURIComponent(l.file)}?v=${l.v}`])), version: pkg.version, fadeMs: FADE_MS, aic: Object.values(usage).reduce((x, y) => x + y, 0), aicSessions: Object.keys(usage).length };
+}
+
+// ---- update notice: ask GitHub for the latest release at start-up and every few hours ----
+let update = null; // { version, url } when a newer release exists
+async function checkUpdate() {
+  const r = await latestRelease(UPDATE_URL);
+  const next = r && isNewer(r.version, pkg.version) ? r : null;
+  if (next?.version !== update?.version) { update = next; push(); }
 }
 
 // ---- http ----
@@ -639,5 +652,6 @@ server.listen(PORT, '127.0.0.1', () => {
   if (!opt['no-open']) openBrowser(url);
 });
 
+if (UPDATE_CHECK) { checkUpdate(); setInterval(checkUpdate, 6 * 3600e3).unref(); }
 scan();
 setInterval(() => { if (scan() || clients.size) push(); }, 1000);

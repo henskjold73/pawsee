@@ -9,13 +9,13 @@ const freePort = () => new Promise(res => { const s = createServer().listen(0, '
 export const sleep = ms => new Promise(r => setTimeout(r, ms));
 const server = join(import.meta.dirname, '..', 'server.mjs');
 
-export async function start() {
+export async function start(extraEnv = {}) {
   const root = mkdtempSync(join(tmpdir(), 'pawsee-test-'));
   const copilot = join(root, 'copilot'), claude = join(root, 'claude'), logos = join(root, 'logos');
   for (const d of [copilot, claude, logos]) mkdirSync(d);
   const port = await freePort();
   const proc = spawn(process.execPath, [server, '--no-open', '-p', String(port), '--dir', copilot, '--claude-dir', claude, '--logos', logos],
-    { stdio: 'ignore', env: { ...process.env, CLAUDE_CONFIG_DIR: join(root, 'claude-home') } });
+    { stdio: 'ignore', env: { ...process.env, CLAUDE_CONFIG_DIR: join(root, 'claude-home'), PAWSEE_NO_UPDATE_CHECK: '1', ...extraEnv } }); // never ask GitHub from a test
   const api = async () => (await fetch(`http://127.0.0.1:${port}/api/agents`)).json();
   for (let i = 0; i < 50; i++) { try { await api(); break; } catch { await sleep(100); } }
   const h = {
