@@ -228,3 +228,8 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 .drift{margin:0 0 14px;padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--fail) 16%,var(--card));border:1px solid var(--fail);font-size:13px;line-height:1.4}
 .drift[hidden]{display:none}
 .drift a{color:inherit;font-weight:600}
+
+/* sound toggle */
+.snd{all:unset;cursor:pointer;margin-left:10px;font-size:15px;line-height:1;padding:3px 6px;border-radius:8px;vertical-align:middle;opacity:.55}
+.snd:hover,.snd:focus-visible,.snd[aria-pressed=true]{opacity:1}
+.snd:focus-visible{outline:2px solid var(--wait);outline-offset:2px}

@@ -36,5 +36,14 @@ const PawMood = (() => {
     return finished ? '✓ done · pawsee' : 'pawsee';
   }
 
-  return { moodOf, reactionOf, faviconFor, titleFor, SLEEPY_MS, DEEP_MS };
+  // which sound (if any) to play when the cards change from `prev` to `cur`: { waiting, running, cheered }.
+  // "attention" when more things need you; "finished" when the last working agent has just wrapped up
+  function soundFor(prev, cur) {
+    if (!prev) return null; // the first render is just the page loading
+    if (cur.waiting > prev.waiting) return 'attention';
+    if (prev.running > 0 && cur.running === 0 && cur.waiting === 0 && cur.cheered > 0) return 'finished';
+    return null;
+  }
+
+  return { moodOf, reactionOf, faviconFor, titleFor, soundFor, SLEEPY_MS, DEEP_MS };
 })();

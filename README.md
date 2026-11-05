@@ -81,6 +81,7 @@ The binaries aren't code-signed, so a browser download will be flagged: on macOS
 
 Paws have moods too: sleepy-eyed just after napping off and deeply asleep (slow breathing, extra z's) after two minutes, and dizzy (spiral eyes, circling stars) after lots of failed attempts in a row.
 When an agent that was running finishes, its paw does a happy hop with confetti; when it fails, it flops over.
+Sounds are off by default: click the speaker next to the version to switch on a soft chime when something needs you and another when the last working agent finishes (made in the browser, no audio files; the choice is remembered).
 While the tab is in the background, the tab icon gets an amber count when something needs you (and the title flashes), or a green tick when work finished while you were away.
 
 Claude Code agents get claws on their toes, so you can tell them from Copilot CLI's paws at a glance.

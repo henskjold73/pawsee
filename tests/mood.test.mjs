@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { runInThisContext } from 'node:vm';
 
 // mood.js is a classic browser script, so run it as one
-const { moodOf, reactionOf, faviconFor, titleFor, SLEEPY_MS, DEEP_MS } = runInThisContext(readFileSync(new URL('../public/mood.js', import.meta.url), 'utf8') + ';PawMood');
+const { moodOf, reactionOf, faviconFor, titleFor, soundFor, SLEEPY_MS, DEEP_MS } = runInThisContext(readFileSync(new URL('../public/mood.js', import.meta.url), 'utf8') + ';PawMood');
 const NOW = 1_000_000;
 
 test('an agent that keeps failing turns dizzy, but only while it is still struggling', () => {
@@ -67,4 +67,29 @@ test('the tab title says what is going on, and flashes while hidden', () => {
   assert.equal(titleFor(2, true), '(2) needs you · pawsee');   // waiting wins over done
   assert.equal(titleFor(2, false, true), '🐾 2 needs you!');
   assert.equal(titleFor(0, false, true), 'pawsee');            // nothing to flash about
+});
+
+test('a sound plays when more things need you', () => {
+  const was = { waiting: 1, running: 2, cheered: 0 };
+  assert.equal(soundFor(was, { ...was, waiting: 2 }), 'attention');
+  assert.equal(soundFor({ ...was, waiting: 0 }, { ...was, waiting: 1 }), 'attention');
+  assert.equal(soundFor(was, { ...was, waiting: 1 }), null);               // nothing new
+  assert.equal(soundFor(was, { ...was, waiting: 0 }), null);               // you answered one: no sound
+  assert.equal(soundFor(was, { waiting: 3, running: 0, cheered: 2 }), 'attention'); // asking beats finishing
+});
+
+test('a sound plays when the last working agent wraps up, and not for other reasons', () => {
+  const working = { waiting: 0, running: 2, cheered: 0 };
+  assert.equal(soundFor(working, { waiting: 0, running: 0, cheered: 1 }), 'finished');
+  assert.equal(soundFor({ ...working, running: 1 }, { waiting: 0, running: 0, cheered: 3 }), 'finished');
+  assert.equal(soundFor(working, { waiting: 0, running: 1, cheered: 1 }), null);   // others are still working
+  assert.equal(soundFor(working, { waiting: 0, running: 0, cheered: 0 }), null);   // they were lost or hidden, not finished
+  assert.equal(soundFor(working, { waiting: 1, running: 0, cheered: 1 }), 'attention'); // something needs you now
+  assert.equal(soundFor({ waiting: 1, running: 1, cheered: 0 }, { waiting: 1, running: 0, cheered: 1 }), null); // still waiting on you
+  assert.equal(soundFor({ waiting: 0, running: 0, cheered: 0 }, { waiting: 0, running: 0, cheered: 1 }), null);  // nothing was running
+});
+
+test('no sound on the very first render', () => {
+  assert.equal(soundFor(null, { waiting: 5, running: 0, cheered: 0 }), null);
+  assert.equal(soundFor(undefined, { waiting: 0, running: 0, cheered: 4 }), null);
 });

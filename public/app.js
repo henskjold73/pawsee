@@ -192,6 +192,42 @@ function showProblems(list) {
     + `<a href="https://github.com/henskjold73/pawsee/issues" target="_blank" rel="noopener">Update pawsee or report it</a>.`;
 }
 
+// soft chimes, off by default, made with the browser's own synth (no sound files). A browser only lets a page make noise after you've clicked it,
+// and switching sounds on is that click.
+const NOTES = { attention: [[784, 0], [988, .16]], finished: [[523, 0], [659, .14], [784, .28]] };
+let soundOn = false, audio = null;
+try { soundOn = localStorage.getItem('pawsee-sound') === '1'; } catch {}
+function playSound(kind) {
+  if (!soundOn) return;
+  try {
+    audio ??= new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === 'suspended') audio.resume();
+    const t0 = audio.currentTime + .02;
+    for (const [freq, at] of NOTES[kind]) {
+      const osc = audio.createOscillator(), gain = audio.createGain(), t = t0 + at;
+      osc.type = 'sine'; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(.0001, t);
+      gain.gain.exponentialRampToValueAtTime(.12, t + .02);
+      gain.gain.exponentialRampToValueAtTime(.0001, t + .45);
+      osc.connect(gain).connect(audio.destination);
+      osc.start(t); osc.stop(t + .5);
+    }
+  } catch {}
+}
+function showSound() {
+  const b = document.getElementById('snd');
+  b.textContent = soundOn ? '🔔' : '🔇';
+  b.setAttribute('aria-pressed', String(soundOn));
+  b.title = soundOn ? 'Sounds are on: a chime when something needs you, another when work finishes. Click to turn off' : 'Sounds are off. Click to play a soft chime when something needs you or work finishes';
+}
+document.getElementById('snd').onclick = () => {
+  soundOn = !soundOn;
+  try { localStorage.setItem('pawsee-sound', soundOn ? '1' : '0'); } catch {}
+  showSound();
+  playSound('attention'); // a preview, and the click that lets the browser play sound
+};
+showSound();
+
 // "a newer version is out": a small pill by the version, hidden per version when you dismiss it
 function showUpdate(u) {
   const wrap = document.getElementById('updwrap'), link = document.getElementById('upd');
@@ -233,7 +269,7 @@ function applyTab() {
   if (fav !== lastFav) { document.getElementById('fav').href = fav; lastFav = fav; }
   document.title = PawMood.titleFor(tabWaiting, finishedAway, document.hidden && flash);
 }
-let tabWaiting = 0;
+let tabWaiting = 0, lastCounts = null;
 
 function render(snap) {
   if (snap.version) document.getElementById('ver').textContent = 'v' + snap.version;
@@ -249,6 +285,7 @@ function render(snap) {
   showProblems(snap.problems);
   const agents = snap.agents, fadeMs = snap.fadeMs || 240e3;
   const seen = new Set();
+  let cheered = 0; // agents that wrapped up since the last render
   agents.forEach((a, i) => {
     const key = a.session + a.id;
     seen.add(key);
@@ -268,9 +305,10 @@ function render(snap) {
       if (reduceMotion.matches) el.querySelector('svg').pauseAnimations();
       cards.set(key, el);
     }
-    const reaction = !reduceMotion.matches && el._status && PawMood.reactionOf(el._status, a); // only for an agent we saw running, never on page load
-    if (reaction) react(el, reaction);
+    const reaction = el._status && PawMood.reactionOf(el._status, a); // only for an agent we saw running, never on page load
+    if (reaction && !reduceMotion.matches) react(el, reaction);
     if (reaction && document.hidden) finishedAway = true;
+    if (reaction === 'cheer') cheered++;
     el._status = a.status;
     el.dataset.status = a.status;
     const mood = PawMood.moodOf(a, now);
@@ -324,6 +362,10 @@ function render(snap) {
     }
   }
   tabWaiting = n('waiting');
+  const counts = { waiting: tabWaiting, running: n('running'), cheered };
+  const chime = PawMood.soundFor(lastCounts, counts);
+  lastCounts = counts;
+  if (chime) playSound(chime);
   if (agents.some(a => a.status === 'running')) finishedAway = false; // work resumed: the tick is stale
   applyTab();
 }
