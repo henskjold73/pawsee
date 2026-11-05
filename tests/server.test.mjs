@@ -181,3 +181,20 @@ test('your own skill images show up for the skill, the same name as a built-in w
   assert.equal((await fetch(`http://127.0.0.1:${h.port}/logos/notes.txt`)).status, 404);
   assert.equal((await fetch(`http://127.0.0.1:${h.port}/logos/..%2Fserver.mjs`)).status, 404);
 });
+
+test('an agent lists the icons it used, in order of first use, once per icon, and a new task starts a fresh list', async () => {
+  const s = copilotSession(h, '77777777-9999');
+  s.prompt('Check the repo');
+  s.tool('bash', { command: 'docker ps' });
+  s.tool('bash', { command: 'ls' });
+  s.tool('bash', { command: 'docker logs x' });
+  s.tool('skill', { skill: 'nx-workspace' });
+  s.tool('skill', { skill: 'my-own-skill' });
+  s.tool('view', { path: '/tmp/a' });
+  let m = await h.until(a => main(a, '77777777-9999')?.tools >= 6 && main(a, '77777777-9999'), 'icons used');
+  assert.deepEqual(m.used, ['docker', 'shell', 'nx', 'skill', 'explore']);
+  s.endTurn();
+  s.prompt('Something else');
+  m = await h.until(a => main(a, '77777777-9999')?.used?.length === 0 && main(a, '77777777-9999'), 'fresh list');
+  assert.deepEqual(m.used, []);
+});

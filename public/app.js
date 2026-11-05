@@ -145,6 +145,33 @@ function metaHtml(a, now) {
 const DEMO = new URLSearchParams(location.search).has('demo');
 if (DEMO) document.getElementById('demo').hidden = false;
 let demoOrder = null, demoStep = null;
+// done cards: small round badges for what the agent used (skills, connectors, CLIs, then the kinds of work), at most 4 and a "+n"
+const KIND_ICONS = {
+  shell: ['console', '<rect x="-11" y="-8" width="22" height="16" rx="3" fill="#2d2523"/><path d="M-7 -3l4 3-4 3" fill="none" stroke="#7fe3a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M0 4h6" stroke="#7fe3a6" stroke-width="2" stroke-linecap="round"/>'],
+  web: ['web', '<g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle r="9"/><ellipse rx="3.8" ry="9"/><path d="M-9 0h18"/></g>'],
+  code: ['code', '<path d="M-4 -6l-6 6 6 6M4 -6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>'],
+  explore: ['search', '<g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="-2" cy="-2" r="6"/><path d="M3 3l7 7"/></g>'],
+  sql: ['database', '<g fill="none" stroke="currentColor" stroke-width="1.7"><ellipse cy="-6" rx="8" ry="3"/><path d="M-8 -6v12c0 1.8 3.6 3 8 3s8-1.2 8-3V-6M-8 0c0 1.8 3.6 3 8 3s8-1.2 8-3"/></g>'],
+  work: ['work items', '<g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="-7" y="-9" width="14" height="18" rx="2.5"/><path d="M-3.5 -2l1.5 1.5 3-3M-3.5 4.5l1.5 1.5 3-3"/></g>'],
+  skill: ['skill', '<path d="M0 -10l2.6 6.4L9 -2.4l-5 4.4 1.6 7L0 5.4 -5.6 9l1.6-7-5-4.4 6.4-1.2z" fill="#f6c945" stroke="#c9961a" stroke-width="1.4" stroke-linejoin="round"/>'],
+};
+const SHOWN_USED = 4;
+function usedBadges(box, used, logos) {
+  const list = used || [], sig = list.join(',');
+  box.hidden = !list.length;
+  if (box._sig === sig) return;
+  box._sig = sig;
+  const rank = k => BRAND_ICONS[k] || k.startsWith('custom:') ? 0 : 1; // brands first, then the generic kinds; first use order within each
+  const sorted = list.map((k, i) => [k, i]).sort((x, y) => rank(x[0]) - rank(y[0]) || x[1] - y[1]).map(x => x[0]).filter(k => BRAND_ICONS[k] || k.startsWith('custom:') || KIND_ICONS[k]);
+  const chip = k => {
+    if (BRAND_ICONS[k]) return `<span class="uchip" title="${k}"><svg viewBox="-10 -10 20 20">${BRAND_ICONS[k]}</svg></span>`;
+    if (k.startsWith('custom:')) { const f = logos?.[k.slice(7)]; return f ? `<span class="uchip" title="${k.slice(7)}"><img src="${f}" alt=""></span>` : ''; }
+    return `<span class="uchip kind" title="${KIND_ICONS[k][0]}"><svg viewBox="-12 -12 24 24">${KIND_ICONS[k][1]}</svg></span>`;
+  };
+  const more = sorted.length - SHOWN_USED;
+  box.innerHTML = sorted.slice(0, SHOWN_USED).map(chip).join('') + (more > 0 ? `<span class="uchip more" title="${sorted.slice(SHOWN_USED).map(k => k.replace(/^custom:/, '')).join(', ')}">+${more}</span>` : '');
+}
+
 const demo = now => {
   const acts = { web: 'Fetching docs.github.com/copilot', code: 'Editing src/auth.ts', explore: 'Grep “TODO”', shell: '$ npm test -- auth',
     sql: 'Querying todos table', ask: 'Waiting for your answer', work: 'Reading work item 4821', think: 'Planning the next step' };
@@ -163,6 +190,8 @@ const demo = now => {
   run.forEach((x, i) => { x.worry = [0, 0, 1, 0, 2, 0, 3, 0][i % 8]; x.worryAt = now - 2000; x.lastError = 'Path does not exist'; x.fails = [0, 2, 1, 4, 2, 0, 9, 13][i % 8]; });
   [...run, ...rest].forEach((x, i) => { x.effort = ['low', 'medium', 'high', 'xhigh'][i % 4]; });
   const all = [...wait, ...run, ...rest];
+  const SAMPLE = ['nx', 'shell', 'git', 'skill', 'github', 'web', 'code'];
+  rest.forEach((x, i) => { x.used = SAMPLE.slice(i, i + 2 + i * 2); }); // demo only: the done card shows 4 and a +n
   const cyc = all.find(x => x.id === 'r0'), phase = Math.floor(now / 9000) % 4; // demo only: one card keeps finishing and failing, to preview the reactions
   if (cyc && phase % 2) Object.assign(cyc, { status: phase === 1 ? 'done' : 'failed', endedAt: now - 1000 }); // running, done, running, failed
   all.forEach((x, i) => { x.source = i % 3 === 1 ? 'claude' : 'copilot'; }); // some of the demo cards are Claude Code ones
@@ -291,7 +320,7 @@ function render(snap) {
     if (!el) {
       el = document.createElement('article');
       el.className = 'card';
-      el.innerHTML = `<div class="stage"><span class="badge"></span><span class="fails" hidden></span><span class="typebadge" hidden></span>${pawSvg()}</div><div class="body"><div class="top"><span class="name"></span></div>
+      el.innerHTML = `<div class="stage"><span class="badge"></span><span class="fails" hidden></span><span class="typebadge" hidden></span><span class="used" hidden></span>${pawSvg()}</div><div class="body"><div class="top"><span class="name"></span></div>
         <div class="sub"></div><div class="doing"></div><div class="meta"></div></div>`;
       el.style.setProperty('--h', hueOf(key));
       const doing = el.querySelector('.doing');
@@ -335,7 +364,9 @@ function render(snap) {
     el.querySelector('.name').textContent = a.type === 'main agent' ? a.name : a.name.replace(/[-_]+/g, ' '); // agent names are slugs; a prompt title is already prose
     el.querySelector('.badge').textContent = a.label || LABEL[a.status];
     const tb = el.querySelector('.typebadge'), type = a.type && a.type !== 'general-purpose' ? a.type.replace(/[-_]+/g, ' ') : '';
-    tb.hidden = !type; tb.textContent = type;
+    const done = a.status === 'done';
+    tb.hidden = !type || done; tb.textContent = type;
+    usedBadges(el.querySelector('.used'), done ? a.used : [], snap.logos);
     el.querySelector('.sub').textContent = [a.project, a.branch].filter(Boolean).join(' · ');
     el.title = [a.description, a.sessionName].filter(Boolean).join('\n');
     el.querySelector('.doing').innerHTML = doingHtml(a, el.classList.contains('open'));

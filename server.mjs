@@ -140,6 +140,15 @@ function brandOf(d) {
   return null;
 }
 
+// the icons an agent has used, in order of first use: a brand (skill, connector, CLI) or else the kind of work (console, web, code…)
+function noteUsed(x, d) {
+  const tool = d.toolName || '';
+  const key = brandOf(d) || (tool === 'skill' ? 'skill' : kindOf(tool));
+  if (key === 'think' || key === 'ask') return;
+  const used = x.used || (x.used = []);
+  if (!used.includes(key) && used.length < 40) used.push(key);
+}
+
 function describeTool(d) {
   const a = d.arguments || {};
   const what =
@@ -274,7 +283,7 @@ function handle(s, ev) {
         const title = titleFromPrompt(d.content); // null for "yes", "now?" and the like: keep the previous title
         if (title) { s.promptTitle = title; s.promptFull = clip(d.content, 1500, true); }
         const m = mainOf(s);
-        Object.assign(m, { status: 'running', startedAt: ts, endedAt: null, tools: 0, activityAt: ts, kind: 'think', worry: 0, worryAt: 0, lastError: '', fails: 0, // a new task starts with a clean slate
+        Object.assign(m, { status: 'running', startedAt: ts, endedAt: null, tools: 0, used: [], activityAt: ts, kind: 'think', worry: 0, worryAt: 0, lastError: '', fails: 0, // a new task starts with a clean slate
          
           activity: `reading your prompt: ${clip(d.content, 120)}`, activityFull: clip(d.content, 2000, true), said: '', saidFull: '' });
         break;
@@ -320,6 +329,7 @@ function handle(s, ev) {
         Object.assign(m, { activity: describeTool(d), activityFull: fullTool(d), activityAt: ts, kind: kindOf(d.toolName) });
         m.tools += 1;
         const b = brandOf(d); if (b) { m.brand = b; m.brandAt = ts; }
+        noteUsed(m, d);
         break;
       }
       if (ev.agentId && s.agents.has(ev.agentId)) {
@@ -327,6 +337,7 @@ function handle(s, ev) {
         wake(a, ts);
         a.activity = describeTool(d); a.activityFull = fullTool(d); a.activityAt = ts; a.kind = kindOf(d.toolName); a.tools += 1;
         const b = brandOf(d); if (b) { a.brand = b; a.brandAt = ts; }
+        noteUsed(a, d);
       }
       break;
     case 'session.task_complete': { // the agent declared its task done (its last message called task_complete, so turn_end alone can't tell)
@@ -553,7 +564,7 @@ function snapshot() {
       let card = { id: 'main', name: s.promptTitle || s.meta.name || s.product || 'Copilot', type: 'main agent', description: s.promptFull || '', model: '', mode: 'sync',
         status: base.status, kind: base.kind, startedAt: base.startedAt || now, endedAt: base.endedAt, activity: base.activity,
         activityFull: base.activityFull, said: base.said, saidFull: base.saidFull, activityAt: base.activityAt || now,
-        tools: base.tools, aic: s.mainAic, effort: base.effort, brand: base.brand, brandAt: base.brandAt, worry: base.worry || 0, worryAt: base.worryAt || 0, lastError: base.lastError || '', fails: base.fails || 0,
+        tools: base.tools, used: base.used || [], aic: s.mainAic, effort: base.effort, brand: base.brand, brandAt: base.brandAt, worry: base.worry || 0, worryAt: base.worryAt || 0, lastError: base.lastError || '', fails: base.fails || 0,
         label: idle ? (working ? 'waiting on agents' : 'your turn') : undefined };
       if (s.promptFull && base.activityFull) card.activityFull = `${base.activityFull}\n\n— current prompt —\n${s.promptFull}`;
       if (idle && working) {

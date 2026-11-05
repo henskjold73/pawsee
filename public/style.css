@@ -135,6 +135,14 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
   padding:2px 9px;border-radius:99px;background:var(--card);color:var(--ink);border:1.5px solid color-mix(in srgb,var(--paw-dark) 45%,transparent);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .typebadge[hidden]{display:none}
+/* done cards: what the agent used, small round badges bottom left */
+.used{position:absolute;left:10px;bottom:10px;z-index:1;display:flex;gap:4px;align-items:center}
+.used[hidden]{display:none}
+.uchip{width:24px;height:24px;border-radius:50%;background:#fff;border:1.5px solid color-mix(in srgb,var(--paw-dark) 35%,transparent);display:flex;align-items:center;justify-content:center;
+  color:var(--ink);overflow:hidden;box-sizing:border-box}
+.uchip svg,.uchip img{width:15px;height:15px;display:block}
+.uchip.kind{background:var(--card)}
+.uchip.more{font-size:10px;font-weight:800;width:auto;min-width:24px;padding:0 6px;border-radius:99px;background:var(--card)}
 
 /* effort -> detail: data-lv 1 (low, plainest) .. 4 (xhigh, fanciest); 2 is the standard look */
 .paw :is(.fx-halo,.fx-orbit,.fx-spark,.brows){display:none}
