@@ -31,6 +31,8 @@ writeFileSync('dist/sea-config.json', JSON.stringify({
     'app.js': 'public/app.js',
     'brands.js': 'public/brands.js',
     'mood.js': 'public/mood.js',
+    'meter.js': 'public/meter.js',
+    'history.js': 'public/history.js',
   },
 }));
 run(process.execPath, ['--experimental-sea-config', 'dist/sea-config.json']);

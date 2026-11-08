@@ -134,6 +134,9 @@ function metaHtml(a, now) {
   if (a.tools != null) tags.push(`<span class="tag">🔧 ${a.tools}</span>`);
   if (a.status === 'running' && a.worry > 0 && now - a.worryAt < 15e3) tags.push(`<span class="tag" title="${esc(a.lastError || 'the last attempt failed')}">😰 ${a.worry > 1 ? 'retrying (' + a.worry + ' fails)' : 'retrying'}</span>`);
   if (a.effort) tags.push(`<span class="tag" title="Reasoning effort this agent runs with">🧠 ${esc(a.effort)}</span>`);
+  if (a.tokens > 0) { const t = PawMeter.tierOf(a.tokens); tags.push(`<span class="tag kib" title="Kibble eaten: fresh tokens this agent has read and written, cached ones not counted. Appetite: ${t.name}">${t.icon} ${PawMeter.fmt(a.tokens)} · ${t.name}</span>`); }
+  if (a.zoomies === 'loop') tags.push(`<span class="tag zoom" title="The same call ${a.repeat} times in a row: it may be stuck in a loop">🌀 chasing its tail (same call ×${a.repeat})</span>`);
+  else if (a.zoomies === 'burn') tags.push(`<span class="tag zoom" title="Eating far faster than the other agents">💨 zoomies: ${PawMeter.fmt(a.burn)}/min</span>`);
   if (a.aic > 0) tags.push(`<span class="tag" title="AI credits used by this agent">⚡ ${fmtAic(a.aic)} AIC</span>`);
   if (a.asksParent) tags.push('<span class="tag">❓ ends with a question</span>');
   if (KIND[a.kind]) tags.push(`<span class="tag">${KIND[a.kind]}</span>`);
@@ -155,6 +158,19 @@ const KIND_ICONS = {
   work: ['work items', '<g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="-7" y="-9" width="14" height="18" rx="2.5"/><path d="M-3.5 -2l1.5 1.5 3-3M-3.5 4.5l1.5 1.5 3-3"/></g>'],
   skill: ['skill', '<path d="M0 -10l2.6 6.4L9 -2.4l-5 4.4 1.6 7L0 5.4 -5.6 9l1.6-7-5-4.4 6.4-1.2z" fill="#f6c945" stroke="#c9961a" stroke-width="1.4" stroke-linejoin="round"/>'],
 };
+let toastTimer;
+function toast(text) {
+  const t = document.getElementById('toast');
+  t.textContent = text; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3500);
+}
+async function jumpTo(session) {
+  try {
+    const r = await fetch('/focus', { method: 'POST', headers: { 'content-type': 'application/json', 'x-pawsee': '1' }, body: JSON.stringify({ session }) });
+    const j = await r.json();
+    toast(j.ok ? (j.how === 'tab' ? `Jumped to its tab in ${j.app}` : `Brought ${j.app} forward`) : j.reason || 'Could not jump there');
+  } catch { toast('Could not reach pawsee'); }
+}
 const SHOWN_USED = 4;
 function usedBadges(box, used, logos) {
   const list = used || [], sig = list.join(',');
@@ -255,6 +271,47 @@ document.getElementById('snd').onclick = () => {
 };
 showSound();
 
+// desktop notifications: opt in with the Notify pill (the click is also what lets the browser ask for permission). They only show while
+// the tab is hidden or unfocused, since the page itself already shows what's happening. The choice is remembered.
+let notifyOn = false;
+try { notifyOn = localStorage.getItem('pawsee-notify') === '1'; } catch {}
+const notifyBtn = document.getElementById('ntf');
+const canNotify = typeof Notification !== 'undefined';
+function showNotify() {
+  const denied = canNotify && Notification.permission === 'denied';
+  if (denied || !canNotify) notifyOn = false;
+  notifyBtn.textContent = notifyOn ? '🖥 Notify on' : '🖥 Notify off';
+  notifyBtn.setAttribute('aria-pressed', String(notifyOn));
+  notifyBtn.disabled = denied || !canNotify;
+  notifyBtn.title = !canNotify ? 'This browser has no desktop notifications'
+    : denied ? 'Notifications are blocked for this page. Allow them in your browser\'s site settings to use this'
+    : notifyOn ? 'Notifications are on: a desktop notification when something needs you or work finishes while this tab is in the background. Click to turn off'
+    : 'Notifications are off. Click to get a desktop notification when something needs you or work finishes while this tab is in the background';
+}
+notifyBtn.onclick = async () => {
+  if (!canNotify) return;
+  if (notifyOn) notifyOn = false;
+  else {
+    const perm = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+    notifyOn = perm === 'granted';
+  }
+  try { localStorage.setItem('pawsee-notify', notifyOn ? '1' : '0'); } catch {}
+  showNotify();
+};
+function notifyDesktop(kind, agents) {
+  if (!notifyOn || !canNotify || Notification.permission !== 'granted') return;
+  if (!document.hidden && document.hasFocus()) return;
+  try {
+    const names = agents.filter(a => a.status === 'waiting').map(a => a.type === 'main agent' ? a.name : a.name.replace(/[-_]+/g, ' '));
+    const waiting = kind === 'attention';
+    new Notification(waiting ? '🐾 Something needs you' : '🐾 Work finished', {
+      body: waiting ? (names.join(', ') || 'An agent is waiting for you') : 'All agents are done',
+      tag: 'pawsee-' + kind,
+    });
+  } catch {}
+}
+showNotify();
+
 // "a newer version is out": a small pill by the version, hidden per version when you dismiss it
 function showUpdate(u) {
   const wrap = document.getElementById('updwrap'), link = document.getElementById('upd');
@@ -298,7 +355,9 @@ function applyTab() {
 }
 let tabWaiting = 0, lastCounts = null;
 
+let bootId = null; // the server's start id: when it changes the server was restarted (an update, or `npm run dev`), so load the new page
 function render(snap) {
+  if (snap.boot) { if (bootId && snap.boot !== bootId) return location.reload(); bootId = snap.boot; }
   if (snap.version) document.getElementById('ver').textContent = 'v' + snap.version;
   // FLIP: remember where every card is now (including mid-slide), so reordering can glide instead of jump
   const before = new Map();
@@ -306,13 +365,14 @@ function render(snap) {
     before.set(el, el.getBoundingClientRect());
     el.getAnimations().forEach(an => { if (an.id === 'move') an.cancel(); });
   }
-  if (DEMO) { const ag = demo(snap.now); ag.forEach((x, i) => { x.aic = 3.2 + i * 9.7; }); snap = { now: snap.now, agents: ag, aic: 214.6, aicSessions: 1, update: { version: '9.9.9', url: 'https://github.com/henskjold73/pawsee/releases' }, problems: new URLSearchParams(location.search).has('drift') ? [{ source: 'Claude Code', reason: 'unrecognised', sessions: 2 }] : [] }; }
+  if (DEMO) { const ag = demo(snap.now); ag.forEach((x, i) => { x.aic = 3.2 + i * 9.7; x.tokens = Math.round(1500 * (i + 1) ** 2.6); x.burn = x.kind === 'shell' ? 90e3 : 2e3; x.repeat = x.kind === 'explore' ? 7 : 0; }); snap = { now: snap.now, agents: ag, tokens: ag.reduce((n, x) => n + x.tokens, 0), aic: 214.6, aicSessions: 1, update: { version: '9.9.9', url: 'https://github.com/henskjold73/pawsee/releases' }, problems: new URLSearchParams(location.search).has('drift') ? [{ source: 'Claude Code', reason: 'unrecognised', sessions: 2 }] : [] }; }
   const { now } = snap;
   showUpdate(snap.update);
   showProblems(snap.problems);
   const agents = snap.agents, fadeMs = snap.fadeMs || 240e3;
   const seen = new Set();
   let cheered = 0; // agents that wrapped up since the last render
+  for (const a of agents) a.zoomies = PawMeter.zoomiesOf(a, agents.filter(o => o !== a));
   agents.forEach((a, i) => {
     const key = a.session + a.id;
     seen.add(key);
@@ -323,6 +383,8 @@ function render(snap) {
       el.innerHTML = `<div class="stage"><span class="badge"></span><span class="fails" hidden></span><span class="typebadge" hidden></span><span class="used" hidden></span>${pawSvg()}</div><div class="body"><div class="top"><span class="name"></span></div>
         <div class="sub"></div><div class="doing"></div><div class="meta"></div></div>`;
       el.style.setProperty('--h', hueOf(key));
+      const stage = el.querySelector('.stage');
+      stage.addEventListener('click', () => { if (stage.classList.contains('jump')) jumpTo(stage._session); });
       const doing = el.querySelector('.doing');
       doing.tabIndex = 0;
       doing.setAttribute('role', 'button');
@@ -360,10 +422,15 @@ function render(snap) {
     const logo = a.brand?.startsWith('custom:') && snap.logos?.[a.brand.slice(7)];
     if (logo) { const im = el.querySelector('.b-custom image'); if (im.getAttribute('href') !== logo) im.setAttribute('href', logo); }
     el.classList.toggle('fading', a.label !== 'waiting on agents' && ['done', 'failed', 'lost', 'idle'].includes(a.status) && now - (a.endedAt ?? a.activityAt) > fadeMs - 15e3);
+    if (a.zoomies) el.dataset.zoomies = a.zoomies; else delete el.dataset.zoomies;
     el.dataset.kind = a.kind || 'think';
     el.querySelector('.name').textContent = a.type === 'main agent' ? a.name : a.name.replace(/[-_]+/g, ' '); // agent names are slugs; a prompt title is already prose
     el.querySelector('.badge').textContent = a.label || LABEL[a.status];
     const tb = el.querySelector('.typebadge'), type = a.type && a.type !== 'general-purpose' ? a.type.replace(/[-_]+/g, ' ') : '';
+    const st = el.querySelector('.stage');
+    st.classList.toggle('jump', !!a.canFocus && !DEMO);
+    st.title = a.canFocus && !DEMO ? 'Click to jump to its terminal' : '';
+    st._session = a.session;
     const done = a.status === 'done';
     tb.hidden = !type || done; tb.textContent = type;
     usedBadges(el.querySelector('.used'), done ? a.used : [], snap.logos);
@@ -377,8 +444,9 @@ function render(snap) {
 
   const n = s => agents.filter(a => a.status === s).length;
   const credits = snap.aic > 0 ? `<span title="All AI credits used so far in the Copilot session${snap.aicSessions > 1 ? 's' : ''} shown here: the main agent, every agent, and earlier tasks"><b>⚡ ${fmtAic(snap.aic)}</b> AIC ${snap.aicSessions > 1 ? 'across sessions' : 'this session'}</span>` : '';
+  const kibble = snap.tokens > 0 ? `<span title="Kibble eaten across the sessions pawsee has seen in the last day: fresh tokens read and written, cached ones not counted"><b>${PawMeter.tierOf(snap.tokens).icon} ${PawMeter.fmt(snap.tokens)}</b> kibble eaten</span>` : '';
   summary.innerHTML = [['need you', n('waiting')], ['working', n('running')], ['napping', n('idle')], ['failed', n('failed')], ['done', n('done')]]
-    .filter(([, c]) => c).map(([l, c]) => `<span><b>${c}</b> ${l}</span>`).join('') + credits || '<span>all quiet</span>';
+    .filter(([, c]) => c).map(([l, c]) => `<span><b>${c}</b> ${l}</span>`).join('') + kibble + credits || '<span>all quiet</span>';
   empty.hidden = agents.length > 0;
   if (!reduceMotion.matches) {
     for (const [el, from] of before) {
@@ -394,7 +462,7 @@ function render(snap) {
   const counts = { waiting: tabWaiting, running: n('running'), cheered };
   const chime = PawMood.soundFor(lastCounts, counts);
   lastCounts = counts;
-  if (chime) playSound(chime);
+  if (chime) { playSound(chime); notifyDesktop(chime, agents); }
   if (agents.some(a => a.status === 'running')) finishedAway = false; // work resumed: the tick is stale
   applyTab();
 }

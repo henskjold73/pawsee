@@ -198,3 +198,15 @@ test('an agent lists the icons it used, in order of first use, once per icon, an
   m = await h.until(a => main(a, '77777777-9999')?.used?.length === 0 && main(a, '77777777-9999'), 'fresh list');
   assert.deepEqual(m.used, []);
 });
+
+test('npx / dlx / exec commands show the logo of the tool they run', async () => {
+  const s = copilotSession(h, '0a1b2c3d-5e6f');
+  const cases = [['npx firebase deploy --only hosting', 'firebase'], ['npx -y firebase-tools@latest login', 'firebase'], ['pnpm dlx vercel --prod', 'vercel'],
+    ['npx @angular/cli@17 new app', 'angular'], ['bunx supabase start', 'supabase'], ['npx some-unknown-cli --help', 'npm'], ['firebase emulators:start', 'firebase']];
+  s.prompt('use some clis');
+  await h.until(a => main(a, '0a1b2c3d-5e6f') && a, 'main card');
+  for (const [command, brand] of cases) {
+    s.tool('bash', { command });
+    await h.until(a => main(a, '0a1b2c3d-5e6f')?.brand === brand && a, `${command} -> ${brand}`);
+  }
+});

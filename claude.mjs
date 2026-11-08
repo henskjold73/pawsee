@@ -47,6 +47,8 @@ export function translate(e, agentId = null, st = {}) {
     if (text && !(e.promptId && e.promptId === st.localPrompt) && !synthetic(text) && !(Array.isArray(m.content) && m.content.some(b => b?.type === 'tool_result'))) ev('user.message', { content: text });
   } else if (e.type === 'assistant') {
     const blocks = Array.isArray(m.content) ? m.content : [];
+    const u = m.usage;
+    if (u && m.id) ev('assistant.usage', { id: m.id, model: m.model, tokens: (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.output_tokens || 0) }); // cache reads are cheap and huge: left out
     if (e.effort) ev('session.usage_record', { usage: { reasoningEffort: e.effort } });
     const text = blocks.filter(b => b.type === 'text').map(b => b.text).join('\n');
     const uses = blocks.filter(b => b.type === 'tool_use');

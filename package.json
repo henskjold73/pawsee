@@ -32,6 +32,9 @@
     "claude.mjs",
     "update.mjs",
     "health.mjs",
+    "focus.mjs",
+    "history.mjs",
+    "meter.mjs",
     "public"
   ],
   "engines": {
@@ -41,6 +44,8 @@
     "access": "public"
   },
   "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch --watch-path=. --watch-path=public server.mjs",
     "build:binary": "node scripts/build-binary.mjs",
     "test": "node --test",
     "mutate": "stryker run",

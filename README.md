@@ -114,7 +114,7 @@ npm test   # unit tests plus end-to-end tests that run the server against fake C
 ## Credits
 
 The tool logos in the "thinking" bubble are the real ones, taken from [simple-icons](https://simpleicons.org) (CC0-1.0:
-Git, GitHub, Nx, npm, .NET, Docker, SonarQube Cloud, Node.js, TypeScript, Python, Vitest, ESLint, Prettier) and
+Git, GitHub, Nx, npm, .NET, Docker, SonarQube Cloud, Node.js, TypeScript, Python, Vitest, ESLint, Prettier, Firebase, Vercel, Netlify, Supabase, Prisma, Expo, Next.js, Vite, Tailwind CSS, Storybook, Cloudflare, Turborepo, Angular, React, Vue, Svelte, Astro, Bun, Deno) and
 [devicon](https://devicon.dev) (MIT: Azure DevOps, Azure, Visual Studio Code, Playwright). The marks remain trademarks of their respective owners and are shown only to identify the tool an agent is using.
 
 ## License
