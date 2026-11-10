@@ -1,4 +1,4 @@
-// Did pawsee understand what it read? Both Copilot CLI and Claude Code log in internal formats that can change,
+// Did pawsee understand what it read? Copilot CLI, Claude Code, Codex and Gemini CLI all log in internal formats that can change,
 // and without a check pawsee would just quietly show fewer agents.
 export const MIN_LINES = 60; // a session this long that produced nothing we understood...
 export const MAX_BAD = 5;    // ...or this many lines that would not even parse, is suspicious

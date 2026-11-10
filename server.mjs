@@ -11,6 +11,8 @@ import { parseArgs } from 'node:util';
 import { createRequire } from 'node:module';
 import { titleFromPrompt } from './title.mjs';
 import { translate } from './claude.mjs';
+import { translate as translateCodex, codexKey } from './codex.mjs';
+import { translate as translateGemini, geminiKey } from './gemini.mjs';
 import { focusSession } from './focus.mjs';
 import { isNewer, latestRelease } from './update.mjs';
 import { problemsOf } from './health.mjs';
@@ -25,6 +27,8 @@ const { values: opt } = parseArgs({
     port: { type: 'string', short: 'p' },
     dir: { type: 'string' },
     'claude-dir': { type: 'string' },
+    'codex-dir': { type: 'string' },
+    'gemini-dir': { type: 'string' },
     logos: { type: 'string' },
     'no-update-check': { type: 'boolean' },
     'no-open': { type: 'boolean' },
@@ -35,12 +39,14 @@ const { values: opt } = parseArgs({
 const pkg = JSON.parse(sea ? Buffer.from(sea.getAsset('package.json')).toString() : readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 if (opt.version) { console.log(pkg.version); process.exit(0); }
 if (opt.help) {
-  console.log(`pawsee ${pkg.version} — animated paws for your Copilot CLI and Claude Code agents
+  console.log(`pawsee ${pkg.version} — animated paws for your Copilot CLI, Claude Code, Codex and Gemini agents
 
 Usage: pawsee [options]
   -p, --port <n>   port to serve on (default 4747, or $PORT)
       --dir <path> Copilot session-state folder (default ~/.copilot/session-state)
       --claude-dir <path>  Claude Code projects folder (default ~/.claude/projects)
+      --codex-dir <path>   Codex CLI sessions folder (default ~/.codex/sessions)
+      --gemini-dir <path>  Gemini CLI folder (default ~/.gemini/tmp)
       --logos <path>       folder of your own skill images (default ~/.pawsee/logos)
       --no-update-check    don't ask GitHub whether a newer version exists (or set PAWSEE_NO_UPDATE_CHECK=1)
       --no-open    don't open the browser
@@ -53,6 +59,8 @@ const PORT = Number(opt.port || process.env.PORT || 4747);
 const ROOT = opt.dir || process.env.COPILOT_STATE || join(homedir(), '.copilot', 'session-state');
 const CLAUDE_HOME = process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude');
 const CLAUDE_ROOT = opt['claude-dir'] || join(CLAUDE_HOME, 'projects');
+const CODEX_ROOT = opt['codex-dir'] || join(process.env.CODEX_HOME || join(homedir(), '.codex'), 'sessions');
+const GEMINI_ROOT = opt['gemini-dir'] || join(process.env.GEMINI_CLI_HOME || homedir(), '.gemini', 'tmp');
 const LOGO_DIR = opt.logos || process.env.PAWSEE_LOGOS || join(homedir(), '.pawsee', 'logos');
 const UPDATE_CHECK = !opt['no-update-check'] && !process.env.PAWSEE_NO_UPDATE_CHECK;
 const UPDATE_URL = process.env.PAWSEE_UPDATE_URL || 'https://api.github.com/repos/henskjold73/pawsee/releases/latest';
@@ -493,7 +501,7 @@ function feedClaude(s, line, agentId, st) {
 function pumpClaude(id, file, subDir) {
   let s = sessions.get(id);
   if (!s) {
-    s = { offset: 0, partial: '', meta: { name: '', cwd: '', branch: '' }, product: 'Claude Code', files: new Map(), agents: new Map(), calls: new Map(),
+    s = { offset: 0, partial: '', meta: { name: '', cwd: '', branch: '' }, product: 'Claude Code', src: 'claude', files: new Map(), agents: new Map(), calls: new Map(),
       alive: false, lastUserAt: 0, pending: new Map(), aic: 0, mainAic: 0, owner: new Map() };
     sessions.set(id, s);
   }
@@ -561,6 +569,84 @@ function scanClaude(now) {
   return changed;
 }
 
+// ---- Codex CLI and Gemini CLI: one log file per session, no sub-agent files ----
+function feedFlat(s, line, st, tr) {
+  let changed = false, e;
+  s.lines = (s.lines || 0) + 1;
+  try { e = JSON.parse(line); } catch { s.bad = (s.bad || 0) + 1; return false; }
+  const evs = tr(e, st);
+  if (st.meta?.cwd && !s.meta.cwd) s.meta.cwd = st.meta.cwd;
+  if (st.meta?.branch) s.meta.branch = st.meta.branch;
+  for (const ev of evs) {
+    if (ev.type === 'tool.execution_complete') {
+      const d = ev.data;
+      s.events = (s.events || 0) + 1;
+      if (complete(s, d.toolCallId, d.success, d.error?.message, Date.parse(ev.timestamp) || undefined)) changed = true;
+      continue;
+    }
+    try { handle(s, ev); changed = true; s.events = (s.events || 0) + 1; } catch { s.bad = (s.bad || 0) + 1; }
+  }
+  return changed;
+}
+
+function pumpFlat(key, file, def) {
+  let s = sessions.get(key);
+  if (!s) {
+    s = { offset: 0, partial: '', meta: { name: '', cwd: def.cwd || '', branch: '' }, product: def.product, src: def.src, translate: def.translate, agents: new Map(), calls: new Map(),
+      alive: false, lastUserAt: 0, pending: new Map(), aic: 0, mainAic: 0, owner: new Map(), cst: {} };
+    sessions.set(key, s);
+  }
+  const lines = readNew(s, file);
+  if (s.reset) { s.reset = false; s.agents.clear(); s.trail = []; s.prompts = []; s.cst = {}; }
+  let changed = false;
+  for (const l of lines) if (feedFlat(s, l, s.cst, def.translate)) changed = true;
+  return changed;
+}
+
+// these tools keep no registry of running sessions: a log written to in the last minute is a live session
+function scanFlat(now, key, file, def) {
+  try {
+    const st = statSync(file);
+    if (now - st.mtimeMs > MAX_AGE_MS && !sessions.has(key)) return false;
+    let changed = pumpFlat(key, file, def);
+    const s = sessions.get(key);
+    const alive = now - st.mtimeMs < 60e3;
+    if (alive !== s.alive) { s.alive = alive; changed = true; }
+    return changed;
+  } catch { return false; }
+}
+
+// ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl: only the day folders that can still hold a recent session are opened
+function scanCodex(now) {
+  let changed = false;
+  const cutoff = new Date(now - MAX_AGE_MS - 864e5).toISOString().slice(0, 10);
+  const ls = d => { try { return readdirSync(d); } catch { return []; } };
+  for (const y of ls(CODEX_ROOT)) for (const m of ls(join(CODEX_ROOT, y))) for (const d of ls(join(CODEX_ROOT, y, m))) {
+    if (`${y}-${m}-${d}` < cutoff) continue;
+    for (const f of ls(join(CODEX_ROOT, y, m, d))) {
+      const key = f.startsWith('rollout-') && codexKey(f);
+      if (key && scanFlat(now, key, join(CODEX_ROOT, y, m, d, f), { product: 'Codex', src: 'codex', translate: translateCodex })) changed = true;
+    }
+  }
+  return changed;
+}
+
+// ~/.gemini/tmp/<project>/chats/session-*.jsonl, with the project's folder noted in <project>/.project_root
+function scanGemini(now) {
+  let changed = false;
+  const ls = d => { try { return readdirSync(d); } catch { return []; } };
+  for (const proj of ls(GEMINI_ROOT)) {
+    let cwd = '';
+    for (const f of ls(join(GEMINI_ROOT, proj, 'chats'))) {
+      const key = f.startsWith('session-') && geminiKey(f);
+      if (!key) continue;
+      if (!cwd) try { cwd = readFileSync(join(GEMINI_ROOT, proj, '.project_root'), 'utf8').trim(); } catch { cwd = proj; }
+      if (scanFlat(now, key, join(GEMINI_ROOT, proj, 'chats', f), { product: 'Gemini CLI', src: 'gemini', translate: translateGemini, cwd })) changed = true;
+    }
+  }
+  return changed;
+}
+
 function scan() {
   let changed = false;
   loadLogos();
@@ -582,6 +668,8 @@ function scan() {
     } catch {}
   }
   if (scanClaude(now)) changed = true;
+  if (scanCodex(now)) changed = true;
+  if (scanGemini(now)) changed = true;
   return changed;
 }
 
@@ -616,13 +704,13 @@ function snapshot() {
         card.said = card.saidFull = '';
       }
       if (mainWaits.length) card = { ...card, ...waitCard('main', card.name, 'main agent', mainWaits), tools: card.tools, effort: card.effort, label: undefined };
-      agents.push({ ...card, session: sid.slice(0, 8), source: s.product ? 'claude' : 'copilot', sessionName: s.meta.name, project: basename(s.meta.cwd || ''), branch: s.meta.branch });
+      agents.push({ ...card, session: sid.slice(0, 8), source: srcOf(s), sessionName: s.meta.name, project: basename(s.meta.cwd || ''), branch: s.meta.branch });
     }
     for (const a of s.agents.values()) {
       const mine = waits.filter(p => p.agentId === a.id);
       if (mine.length) {
         agents.push({ ...a, ...waitCard(a.id, a.name, a.type, mine), description: a.description, model: a.model, mode: a.mode, tools: a.tools,
-          session: sid.slice(0, 8), source: s.product ? 'claude' : 'copilot', sessionName: s.meta.name, project: basename(s.meta.cwd || ''), branch: s.meta.branch });
+          session: sid.slice(0, 8), source: srcOf(s), sessionName: s.meta.name, project: basename(s.meta.cwd || ''), branch: s.meta.branch });
         continue;
       }
       let status = a.status;
@@ -632,7 +720,7 @@ function snapshot() {
         if (end < s.lastUserAt) continue;                       // left over from a previous task
         if (now - end > FADE_MS) continue; // finished a while ago
       }
-      agents.push({ ...a, status, burn: burnOf(a, now), repeat: a.repeat || 0, asksParent: status === 'idle' && /\?\s*$/.test(a.saidFull || ''), session: sid.slice(0, 8), source: s.product ? 'claude' : 'copilot', sessionName: s.meta.name,
+      agents.push({ ...a, status, burn: burnOf(a, now), repeat: a.repeat || 0, asksParent: status === 'idle' && /\?\s*$/.test(a.saidFull || ''), session: sid.slice(0, 8), source: srcOf(s), sessionName: s.meta.name,
         project: basename(s.meta.cwd || ''), branch: s.meta.branch });
     }
   }
@@ -645,6 +733,8 @@ function snapshot() {
 }
 
 const BOOT = randomUUID(); // changes with every start, so an open page can tell the server was restarted
+/** which tool a session came from: 'copilot' | 'claude' | 'codex' | 'gemini' */
+function srcOf(s) { return s.src || (s.product ? 'claude' : 'copilot'); }
 const sessionOf = id8 => sessions.get([...sessions.keys()].find(k => k.startsWith(id8)));
 
 // ---- update notice: ask GitHub for the latest release at start-up and every few hours ----
@@ -736,8 +826,8 @@ server.on('error', e => {
 try { mkdirSync(LOGO_DIR, { recursive: true }); } catch {}
 server.listen(PORT, '127.0.0.1', () => {
   const url = `http://localhost:${PORT}`;
-  console.log(`🐾 pawsee watching ${ROOT}\n   and ${CLAUDE_ROOT}\n   your skill images: ${LOGO_DIR}\n   ${url}`);
-  if (!existsSync(ROOT) && !existsSync(CLAUDE_ROOT)) console.log(`   (no Copilot CLI or Claude Code sessions found yet — start one and paws will appear)`);
+  console.log(`🐾 pawsee watching ${ROOT}\n   and ${CLAUDE_ROOT}\n   and ${CODEX_ROOT}\n   and ${GEMINI_ROOT}\n   your skill images: ${LOGO_DIR}\n   ${url}`);
+  if (![ROOT, CLAUDE_ROOT, CODEX_ROOT, GEMINI_ROOT].some(existsSync)) console.log(`   (no Copilot CLI, Claude Code, Codex or Gemini sessions found yet — start one and paws will appear)`);
   if (!opt['no-open']) openBrowser(url);
 });
 

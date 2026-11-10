@@ -30,6 +30,8 @@ writeFileSync('dist/sea-config.json', JSON.stringify({
     'style.css': 'public/style.css',
     'app.js': 'public/app.js',
     'brands.js': 'public/brands.js',
+    'faces.js': 'public/faces.js',
+    'faces.html': 'public/faces.html',
     'mood.js': 'public/mood.js',
     'meter.js': 'public/meter.js',
     'history.js': 'public/history.js',

@@ -30,6 +30,8 @@
     "server.mjs",
     "title.mjs",
     "claude.mjs",
+    "codex.mjs",
+    "gemini.mjs",
     "update.mjs",
     "health.mjs",
     "focus.mjs",

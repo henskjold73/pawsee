@@ -54,9 +54,10 @@
   function pawCard(actor, s) {
     const el = document.createElement('article');
     el.className = 'card';
-    el.innerHTML = `<div class="stage"><span class="badge"></span>${pawSvg()}</div><div class="body"><div class="top"><span class="name"></span></div><div class="sub"></div><div class="doing"></div></div>`;
+    el.innerHTML = `<div class="stage"><span class="badge"></span>${parentChip(s.session, actor.id === 'main')}${agentSvg(s.source, s.session, actor.id, actor.id === 'main')}</div><div class="body"><div class="top"><span class="name"></span></div><div class="sub"></div><div class="doing"></div></div>`;
     el.style.setProperty('--h', hueOf(s.session + actor.id)); // the same colour the live card has
     el.dataset.source = s.source;
+    el.insertAdjacentHTML('afterbegin', toolSvg(s.source));
     el.dataset.lv = 2;
     el.dataset.kind = actor.segments[0].kind;
     el.toggleAttribute('data-main', actor.id === 'main');

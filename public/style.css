@@ -18,7 +18,7 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 .empty{text-align:center;color:var(--muted);margin-top:80px}
 
 .card{background:var(--card);border:2px solid var(--line);border-radius:22px;padding:14px 16px;display:flex;gap:14px;
-  align-items:flex-start;position:relative;transition:border-color .3s, transform .3s, opacity .3s;animation:pop .35s ease-out}
+  align-items:flex-start;position:relative;transition:border-color .3s, transform .3s, opacity .3s;animation:pop .35s cubic-bezier(.3,1.7,.5,1)}
 .card[data-status=running]{border-color:color-mix(in srgb,var(--run) 55%,transparent)}
 .card[data-status=failed]{border-color:color-mix(in srgb,var(--fail) 55%,transparent)}
 .card[data-status=done],.card[data-status=lost]{opacity:.78}
@@ -38,36 +38,37 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 .tag{background:var(--bg);border-radius:8px;padding:1px 7px}
 
 /* paw animations */
-.paw .face{transform-box:fill-box}
+.paw .face,.paw .eye-open{transform-box:fill-box}
+.paw .eye-open{transform-origin:center}
 /* Claude Code agents: little claws on the toes */
 .paw .claw{display:none;fill:#f6efe6;stroke:var(--paw-dark);stroke-width:1.6;stroke-linejoin:round}
 [data-source=claude] .paw .claw{display:inline}
 .paw .toe{transform-box:fill-box;transform-origin:50% 100%}
 .paw .toes ellipse{vector-effect:none}
 .paw .eye-open{display:inline}.paw .eye-closed,.paw .eye-happy,.paw .eye-x,.paw .zzz,.paw .spark,.paw .sweat{display:none}
-[data-status=running] .paw{animation:trot 3.2s ease-in-out infinite}
-[data-status=running] .toe{animation:wiggle 3.2s ease-in-out infinite}
+[data-status=running] .paw{animation:trot 1.2s ease-in-out infinite}
+[data-status=running] .toe{animation:wiggle 1.2s ease-in-out infinite}
 [data-status=running] .toe:nth-child(2){animation-delay:.25s}[data-status=running] .toe:nth-child(3){animation-delay:.5s}[data-status=running] .toe:nth-child(4){animation-delay:.75s}
 [data-status=running] .eye-open{animation:look 7s ease-in-out infinite}
-[data-status=idle] .paw{animation:breathe 5s ease-in-out infinite}
+[data-status=idle] .paw{animation:breathe 4s ease-in-out infinite}
 [data-status=idle] .eye-open{display:none}[data-status=idle] .eye-closed,[data-status=idle] .zzz{display:inline}
 [data-status=idle] .zzz text{animation:zzz 5s ease-in-out infinite}
 [data-status=done] .eye-open{display:none}[data-status=done] .eye-happy{display:inline}
 [data-status=done] .paw{animation:hop 6s ease-in-out infinite}
 [data-status=failed] .eye-open{display:none}[data-status=failed] .eye-x,[data-status=failed] .sweat{display:inline}
-[data-status=failed] .paw{animation:shake .8s ease-in-out 2}
+[data-status=failed] .paw{animation:shake .6s ease-in-out 2}
 [data-status=lost] .eye-open{display:none}[data-status=lost] .eye-closed{display:inline}
 
 @keyframes pop{from{transform:scale(.92);opacity:0}}
-@keyframes wave{0%,60%,100%{transform:rotate(0)}70%{transform:rotate(18deg)}80%{transform:rotate(-8deg)}90%{transform:rotate(14deg)}}
-@keyframes trot{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-3px) rotate(2deg)}}
-@keyframes wiggle{0%,100%{transform:scaleY(1) rotate(0)}50%{transform:scaleY(.92) rotate(3deg)}}
-@keyframes look{0%,40%,100%{transform:translateX(0)}55%,75%{transform:translateX(2.5px)}}
+@keyframes wave{0%,60%,100%{transform:rotate(0)}70%{transform:rotate(18deg)}75%{transform:rotate(-8deg)}80%{transform:rotate(16deg)}85%{transform:rotate(-6deg)}90%{transform:rotate(12deg)}}
+@keyframes trot{0%{transform:translateY(0) rotate(-3deg) scale(1.04,.95)}25%{transform:translateY(-5px) rotate(0) scale(.96,1.06)}50%{transform:translateY(0) rotate(3deg) scale(1.04,.95)}75%{transform:translateY(-5px) rotate(0) scale(.96,1.06)}100%{transform:translateY(0) rotate(-3deg) scale(1.04,.95)}}
+@keyframes wiggle{0%{transform:scaleY(1) rotate(0)}34%{transform:scaleY(.88) rotate(5deg)}67%{transform:scaleY(1.06) rotate(-4deg)}100%{transform:scaleY(1) rotate(0)}}
+@keyframes look{0%{transform:translateX(0) scaleY(1)}30%{transform:translateX(0) scaleY(1)}38%{transform:translateX(3px) scaleY(1)}62%{transform:translateX(-2px) scaleY(1)}78%{transform:translateX(0) scaleY(1)}90%{transform:translateX(0) scaleY(.12)}93%{transform:translateX(0) scaleY(1)}100%{transform:translateX(0) scaleY(1)}}
 @keyframes spark{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:1;transform:scale(1)}}
-@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
-@keyframes zzz{0%{opacity:0;transform:translate(0,4px)}50%{opacity:1}100%{opacity:0;transform:translate(4px,-8px)}}
-@keyframes hop{0%,85%,100%{transform:translateY(0)}92%{transform:translateY(-8px)}}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@keyframes breathe{0%{transform:scale(1)}50%{transform:scale(1.04,.97)}100%{transform:scale(1)}}
+@keyframes zzz{0%{opacity:0;transform:translate(0,4px)}25%{opacity:1;transform:translate(1px,0)}60%{opacity:1;transform:translate(3px,-4px)}85%{opacity:.5;transform:translate(4px,-8px)}100%{opacity:0;transform:translate(4px,-8px)}}
+@keyframes hop{0%,78%,100%{transform:translateY(0) scale(1)}82%{transform:translateY(1px) scale(1.06,.9)}88%{transform:translateY(-9px) scale(.94,1.1)}94%{transform:translateY(0) scale(1.05,.94)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px) rotate(-2deg)}50%{transform:translateX(0)}75%{transform:translateX(5px) rotate(2deg)}}
 @keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 
@@ -80,12 +81,12 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 .meridian{transform-box:fill-box;transform-origin:center;animation:spinx 8s ease-in-out infinite}
 .slash{animation:blink 3s ease-in-out infinite}
 .sweep{transform-box:fill-box;transform-origin:center;animation:sweep 5s ease-in-out infinite}
-.cursor{animation:cursor 1.6s steps(2) infinite}
+.cursor{animation:cursor 1.6s ease-in-out infinite}
 .row{animation:row 4s ease-in-out infinite}
 .p-ask{animation:bob 3s ease-in-out infinite}
 .t1,.t2{stroke-dasharray:10;animation:tick 6s ease-in-out infinite}.t2{animation-delay:1.5s}
 .p-think circle{animation:blink 3.6s ease-in-out infinite both}.p-think .d2{animation-delay:.6s}.p-think .d3{animation-delay:1.2s}
-@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
+@keyframes bob{0%{transform:translateY(0)}50%{transform:translateY(-1.5px)}100%{transform:translateY(0)}}
 @keyframes spinx{0%{transform:scaleX(1)}50%{transform:scaleX(-1)}100%{transform:scaleX(1)}}
 @keyframes sweep{0%,100%{transform:translate(-2px,-1px) rotate(-9deg)}50%{transform:translate(2px,1px) rotate(9deg)}}
 @keyframes cursor{50%{opacity:0}}
@@ -179,14 +180,14 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 [data-worried] .paw :is(.worry-eyes,.worry-brows,.worry-mouth,.sweat){display:inline}
 [data-worried="2"] .paw .sweat2,[data-worried="3"] .paw .sweat2{display:inline}
 .sweat{transform-box:fill-box;transform-origin:center}
-[data-worried] .paw .sweat{animation:drip 2.4s ease-in infinite}
+[data-worried] .paw .sweat{animation:drip 2.4s ease-in-out infinite}
 [data-worried] .paw .sweat2{animation-delay:1s}
 [data-worried] .pupil{transform-box:fill-box;animation:dart 2.2s ease-in-out infinite}
 [data-status=running][data-worried] .paw{animation:tremble .6s ease-in-out infinite}
 [data-status=running][data-worried="3"] .paw{animation-duration:.32s}
-@keyframes tremble{0%,100%{transform:translateX(0) rotate(0)}25%{transform:translateX(-1.4px) rotate(-1.2deg)}75%{transform:translateX(1.4px) rotate(1.2deg)}}
-@keyframes drip{0%{opacity:0;transform:translateY(-3px)}20%{opacity:1}100%{opacity:0;transform:translateY(9px)}}
-@keyframes dart{0%,100%{transform:translateX(0)}30%{transform:translateX(-1.3px)}65%{transform:translateX(1.3px)}}
+@keyframes tremble{0%{transform:translateX(0) rotate(0)}25%{transform:translateX(-1.6px) rotate(-1.4deg)}50%{transform:translateX(0) rotate(0)}75%{transform:translateX(1.6px) rotate(1.4deg)}100%{transform:translateX(0) rotate(0)}}
+@keyframes drip{0%{opacity:0;transform:translateY(-3px)}20%{opacity:1;transform:translateY(-1px)}50%{opacity:1;transform:translateY(3px)}80%{opacity:.6;transform:translateY(7px)}100%{opacity:0;transform:translateY(9px)}}
+@keyframes dart{0%{transform:translateX(0)}30%{transform:translateX(-1.4px)}65%{transform:translateX(1.4px)}100%{transform:translateX(0)}}
 
 /* a red cross for every failed attempt, bottom right of the animation frame */
 .fails{position:absolute;right:10px;bottom:7px;z-index:1;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:1px;max-width:58%}
@@ -214,16 +215,16 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 .dizzy-stars .spin{transform-box:view-box;transform-origin:50px 58px;animation:spinstars 3.2s linear infinite}
 @keyframes spinstars{to{transform:rotate(360deg)}}
 [data-status=running][data-mood=dizzy] .paw{animation:woozy 1.6s ease-in-out infinite}
-@keyframes woozy{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg) translateY(1px)}}
+@keyframes woozy{0%{transform:rotate(-5deg)}50%{transform:rotate(5deg) translateY(1px)}100%{transform:rotate(-5deg)}}
 
 /* one-off reactions: a hop with confetti when an agent finishes, a flop when it fails */
-.card.cheer .paw{animation:cheer 1.6s ease-out}
-@keyframes cheer{0%{transform:translateY(0) rotate(0)}20%{transform:translateY(-16px) rotate(-8deg) scale(1.05)}40%{transform:translateY(0) rotate(6deg)}60%{transform:translateY(-10px) rotate(-5deg)}80%{transform:translateY(0) rotate(3deg)}100%{transform:none}}
+.card.cheer .paw{animation:cheer 1.6s ease-in-out}
+@keyframes cheer{0%{transform:none}10%{transform:translateY(2px) scale(1.1,.86)}25%{transform:translateY(-18px) rotate(-8deg) scale(.92,1.14)}40%{transform:translateY(0) rotate(6deg) scale(1.1,.88)}55%{transform:translateY(-11px) rotate(-5deg) scale(.95,1.08)}70%{transform:translateY(0) rotate(3deg) scale(1.05,.95)}85%{transform:translateY(-3px) scale(.98,1.03)}100%{transform:none}}
 .card.cheer .paw .eye-open{display:none}.card.cheer .paw .eye-happy{display:inline}
 .confetti{position:absolute;left:50%;top:48%;width:7px;height:11px;border-radius:2px;background:var(--c);pointer-events:none;opacity:0;animation:confetti 1.5s cubic-bezier(.15,.7,.3,1) var(--d,0ms) both}
 @keyframes confetti{0%{opacity:1;transform:translate(0,0) rotate(0)}70%{opacity:1}100%{opacity:0;transform:translate(var(--dx),calc(var(--dy) + 50px)) rotate(var(--r))}}
-.card.flop .paw{animation:flop 1.6s ease-out;transform-origin:50% 100%}
-@keyframes flop{0%{transform:none}25%{transform:rotate(-18deg) translateY(-4px)}55%{transform:rotate(26deg) translateY(10px)}75%{transform:rotate(18deg) translateY(8px)}100%{transform:none}}
+.card.flop .paw{animation:flop 1.6s ease-in-out;transform-origin:50% 100%}
+@keyframes flop{0%{transform:none}20%{transform:rotate(-8deg) scale(1.05,.95)}35%{transform:rotate(-20deg) translateY(-5px)}55%{transform:rotate(26deg) translateY(10px) scale(1.1,.88)}70%{transform:rotate(20deg) translateY(9px) scale(1.08,.9)}100%{transform:none}}
 @media (prefers-reduced-motion:reduce){.confetti{display:none}.card.cheer .paw,.card.flop .paw{animation:none}}
 
 /* update notice */
@@ -289,12 +290,57 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 /* kibble meter: a tag for what an agent ate, and the zoomies when it burns too fast or loops */
 .tag.kib{background:color-mix(in srgb,var(--wait) 18%,var(--card))}
 .tag.zoom{background:color-mix(in srgb,var(--fail) 20%,var(--card));font-weight:600}
-.card[data-zoomies]{border-color:color-mix(in srgb,var(--fail) 60%,transparent);animation:zoom 1.1s ease-in-out infinite}
-.card[data-zoomies=loop] .paw{animation:spin-tail 1.6s linear infinite}
-@keyframes zoom{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px) rotate(-.3deg)}75%{transform:translateX(2px) rotate(.3deg)}}
+.card[data-zoomies]{border-color:color-mix(in srgb,var(--fail) 60%,transparent);animation:zoom .8s ease-in-out infinite}
+.card[data-zoomies=loop] .paw .bodyg{transform-box:view-box;transform-origin:50px 58px;animation:spin-tail 1.6s linear infinite}
+@keyframes zoom{0%{transform:translateX(0)}25%{transform:translateX(-2px) rotate(-.4deg)}50%{transform:translateX(0)}75%{transform:translateX(2px) rotate(.4deg)}100%{transform:translateX(0)}}
 @keyframes spin-tail{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.card[data-zoomies],.card[data-zoomies=loop] .paw{animation:none}}
+@media (prefers-reduced-motion:reduce){.card[data-zoomies],.card[data-zoomies=loop] .paw .bodyg{animation:none}}
 
 /* Recent replay: the real paw cards, a little smaller than on the live page */
 .rgrid{margin:4px 0 12px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
 .rgrid .card{padding:10px 12px}
+
+/* each tool has its own foot (drawn in toesSvg): Copilot round beans, Claude Code beans with claws, Codex blocky toes, Gemini sparkle toes */
+
+/* ---- stone-age toon: Flintstones cels meet The Ricky Gervais Show doodles ----
+   thick ink outlines that boil, held poses with squash & stretch, and a deadpan Fred/Karl cave-paw for Copilot */
+:root{--ink-line:#2b1b12}
+.paw .cave{display:none}
+[data-source=copilot] .paw .cave{display:inline}
+.paw .toes{stroke:var(--ink-line);stroke-width:3}
+.paw .pad{stroke:var(--ink-line);stroke-width:3}
+.paw .claw{stroke:var(--ink-line)}
+
+/* human heads: the tool the agent belongs to is a small chip by its name; spec brows and mouth step aside for the mood faces */
+.card{position:relative}
+.toolwrap{position:absolute;top:10px;right:12px;width:40px;height:36px;z-index:3;cursor:default}
+.toolwrap::after{content:attr(data-tool);position:absolute;top:calc(100% + 4px);right:0;padding:2px 9px;border-radius:99px;background:var(--ink);color:var(--card);font-size:11px;font-weight:700;white-space:nowrap;opacity:0;transform:translateY(-3px);pointer-events:none;transition:opacity .15s,transform .15s}
+.toolwrap:hover::after{opacity:1;transform:none}
+.toolpaw{width:100%;height:100%;display:block;overflow:visible;transform-origin:50% 90%;animation:tpbob 3.6s ease-in-out infinite}
+.toolpaw .toe{transform-box:fill-box;transform-origin:50% 100%;animation:wiggle 3.6s ease-in-out infinite}
+.toolpaw .toe:nth-child(2){animation-delay:.3s}.toolpaw .toe:nth-child(3){animation-delay:.6s}.toolpaw .toe:nth-child(4){animation-delay:.9s}
+.toolpaw .teyes{transform-box:fill-box;transform-origin:center;animation:tblink 5s ease-in-out infinite}
+[data-status=running] .toolpaw{animation-duration:1.4s}[data-status=running] .toolpaw .toe{animation-duration:1.4s}
+[data-status=idle] .toolpaw,[data-status=lost] .toolpaw{animation-duration:6s}
+[data-status=idle] .toolpaw .teyes,[data-status=lost] .toolpaw .teyes{transform:scaleY(.2);animation:none}
+[data-status=failed] .toolpaw .teyes{animation:none}
+@keyframes tpbob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-2px) rotate(2deg)}}
+@keyframes tblink{0%,90%,100%{transform:scaleY(1)}94%{transform:scaleY(.1)}}
+@media (prefers-reduced-motion:reduce){.toolpaw,.toolpaw .toe,.toolpaw .teyes{animation:none}}
+.top{padding-right:46px}
+.top{flex-wrap:wrap}
+[data-worried] .paw .hbrows,[data-mood=dizzy] .paw .hbrows,[data-status=failed] .paw .hbrows{display:none}
+[data-status=failed] .paw :is(.eye-x){display:inline}
+[data-status=failed] .paw .mouth{display:none}
+[data-status=failed] .paw .worry-mouth{display:inline}
+
+/* hats for sub-agents, picked by what the agent is doing */
+.paw .hat{display:none}
+.card:not([data-main])[data-kind=explore] .h-explore,.card:not([data-main])[data-kind=web] .h-web,.card:not([data-main])[data-kind=code] .h-code,.card:not([data-main])[data-kind=shell] .h-shell,
+.card:not([data-main])[data-kind=sql] .h-sql,.card:not([data-main])[data-kind=ask] .h-ask,.card:not([data-main])[data-kind=work] .h-work,.card:not([data-main])[data-kind=think] .h-think{display:inline}
+
+/* small portrait of the main agent on a sub-agent's card, in the main agent's colour */
+.parentface{position:absolute;top:8px;right:8px;z-index:3;width:36px;height:36px;border-radius:8px;display:grid;place-items:center;overflow:hidden;
+  background:hsl(var(--mh,25) 70% 78%)}
+@media (prefers-color-scheme:dark){.parentface{background:hsl(var(--mh,25) 45% 38%)}}
+.parentface svg{width:92%;height:92%;display:block}

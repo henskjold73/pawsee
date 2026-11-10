@@ -11,15 +11,15 @@ const server = join(import.meta.dirname, '..', 'server.mjs');
 
 export async function start(extraEnv = {}) {
   const root = mkdtempSync(join(tmpdir(), 'pawsee-test-'));
-  const copilot = join(root, 'copilot'), claude = join(root, 'claude'), logos = join(root, 'logos');
-  for (const d of [copilot, claude, logos]) mkdirSync(d);
+  const copilot = join(root, 'copilot'), claude = join(root, 'claude'), logos = join(root, 'logos'), codex = join(root, 'codex'), gemini = join(root, 'gemini');
+  for (const d of [copilot, claude, logos, codex, gemini]) mkdirSync(d);
   const port = await freePort();
-  const proc = spawn(process.execPath, [server, '--no-open', '-p', String(port), '--dir', copilot, '--claude-dir', claude, '--logos', logos],
+  const proc = spawn(process.execPath, [server, '--no-open', '-p', String(port), '--dir', copilot, '--claude-dir', claude, '--codex-dir', codex, '--gemini-dir', gemini, '--logos', logos],
     { stdio: 'ignore', env: { ...process.env, CLAUDE_CONFIG_DIR: join(root, 'claude-home'), PAWSEE_NO_UPDATE_CHECK: '1', ...extraEnv } }); // never ask GitHub from a test
   const api = async () => (await fetch(`http://127.0.0.1:${port}/api/agents`)).json();
   for (let i = 0; i < 50; i++) { try { await api(); break; } catch { await sleep(100); } }
   const h = {
-    root, copilot, claude, logos, port, api,
+    root, copilot, claude, codex, gemini, logos, port, api,
     // wait until the cards satisfy `ok`, polling (the server rescans every second)
     async until(ok, what = 'cards', ms = 6000) {
       const end = Date.now() + ms; let snap;
@@ -75,4 +75,34 @@ export function claudeSession(h, id, project = 'proj') {
       };
     },
   };
+}
+
+// ---- Codex CLI: <root>/YYYY/MM/DD/rollout-<time>-<uuid>.jsonl; alive while the file is being written ----
+export function codexSession(h, tail = 'a1b2c3d4e5f6') {
+  const day = new Date().toISOString().slice(0, 10).split('-');
+  const dir = join(h.codex, ...day); mkdirSync(dir, { recursive: true });
+  const file = join(dir, `rollout-${day.join('-')}T10-00-00-019e0000-0000-7000-8000-${tail}.jsonl`); writeFileSync(file, '');
+  const put = (type, payload) => appendFileSync(file, JSON.stringify({ timestamp: ts(), type, payload }) + '\n');
+  return { file, key: 'cx' + tail.slice(-6), put,
+    meta: (cwd = '/work/demo', branch = 'main') => put('session_meta', { id: 'x', cwd, git: { branch } }),
+    prompt: text => put('event_msg', { type: 'user_message', message: text }),
+    exec: (cmd, callId = 'call_' + Math.random()) => { put('response_item', { type: 'function_call', name: 'exec_command', arguments: JSON.stringify({ cmd }), call_id: callId }); return callId; },
+    out: (callId, output = 'Process exited with code 0\nOutput:\nok') => put('response_item', { type: 'function_call_output', call_id: callId, output }),
+    say: message => put('event_msg', { type: 'agent_message', message, phase: 'commentary' }),
+    done: last => put('event_msg', { type: 'task_complete', last_agent_message: last }),
+    tokens: (input, cached, output, total) => put('event_msg', { type: 'token_count', info: { last_token_usage: { input_tokens: input, cached_input_tokens: cached, output_tokens: output }, total_token_usage: { total_tokens: total } } }),
+    touch: () => utimesSync(file, new Date(), new Date()) };
+}
+
+// ---- Gemini CLI: <root>/<project>/chats/session-<time>-<id8>.jsonl (+ <project>/.project_root) ----
+export function geminiSession(h, id8 = '0a1b2c3d', project = 'demo') {
+  const dir = join(h.gemini, project, 'chats'); mkdirSync(dir, { recursive: true });
+  writeFileSync(join(h.gemini, project, '.project_root'), '/work/demo');
+  const file = join(dir, `session-2026-09-05T09-00-${id8}.jsonl`);
+  writeFileSync(file, JSON.stringify({ sessionId: `${id8}-0000-4000-8000-000000000001`, projectHash: 'abc', startTime: new Date().toISOString(), kind: 'main' }) + '\n');
+  const put = o => appendFileSync(file, JSON.stringify({ timestamp: ts(), ...o }) + '\n');
+  return { file, key: 'gm' + id8.slice(0, 6), put,
+    prompt: (text, id = 'u' + Math.random()) => put({ id, type: 'user', content: [{ text }] }),
+    reply: (id, content, extra = {}) => put({ id, type: 'gemini', content, model: 'gemini-2.5-pro', ...extra }),
+    touch: () => utimesSync(file, new Date(), new Date()) };
 }

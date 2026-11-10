@@ -24,43 +24,62 @@ function hueOf(key) {
 }
 // reasoning effort -> how much detail the paw gets (1 plainest .. 4 fanciest); unknown = the standard look
 const LEVEL = { low: 1, medium: 2, high: 3, xhigh: 4, max: 4 };
+const TOOL = { copilot: 'Copilot', claude: 'Claude Code', codex: 'Codex', gemini: 'Gemini' };
+// the tool an agent belongs to is a little animated foot in the card's top right: Copilot round paw, Claude Code claws, Codex blocky toes, Gemini sparkle toes
+const TOE_AT = [[20, 42, 10, 13, -20, 'M16 31Q17 21 23 17Q24 25 24 31Z'], [38, 26, 10, 14, -6, 'M34 14Q35 4 41 0Q42 8 42 14Z'], [62, 26, 10, 14, 6, 'M58 14Q59 4 65 0Q66 8 66 14Z'], [80, 42, 10, 13, 20, 'M76 31Q77 21 83 17Q84 25 84 31Z']];
+function toolSvg(source) {
+  const toes = TOE_AT.map(([cx, cy, rx, ry, rot, claw], i) => {
+    const at = `transform="translate(${cx} ${cy}) rotate(${rot})"`;
+    if (source === 'codex') return `<g class="toe"><rect ${at} x="-9" y="${-ry}" width="18" height="${ry * 2}" rx="5.5"/></g>`;
+    if (source === 'gemini') { const R = i === 1 || i === 2 ? 17 : 15, k = R * .2; return `<g class="toe"><path ${at} d="M0 ${-R}Q${k} ${-k} ${R} 0Q${k} ${k} 0 ${R}Q${-k} ${k} ${-R} 0Q${-k} ${-k} 0 ${-R}Z"/></g>`; }
+    return `<g class="toe"><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" transform="rotate(${rot} ${cx} ${cy})"/>${source === 'claude' ? `<path d="${claw}" transform="rotate(${rot} ${cx} ${cy})" fill="#f6efe6"/>` : ''}</g>`;
+  }).join('');
+  return `<span class="toolwrap" data-tool="${TOOL[source] || source}"><svg class="toolpaw" viewBox="-6 -6 112 100" role="img" aria-label="${TOOL[source] || source}"><title>${TOOL[source] || source}</title>
+    <g fill="var(--paw)" stroke="#2b1b12" stroke-width="3.4" stroke-linejoin="round">${toes}<path d="M50 44c-17 0-30 14-30 28 0 10 8 16 17 16 6 0 9-3 13-3s7 3 13 3c9 0 17-6 17-16 0-14-13-28-30-28z"/></g>
+    <g class="teyes" fill="#3b2f2f"><circle cx="41" cy="66" r="4.2"/><circle cx="59" cy="66" r="4.2"/></g>
+    <ellipse cx="50" cy="75" rx="3.6" ry="2.7" fill="var(--bean)"/><path d="M45 79q5 4 10 0" stroke="#3b2f2f" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></span>`;
+}
 const LABEL = { waiting: 'needs you', running: 'working', idle: 'napping', done: 'done', failed: 'failed', lost: 'lost' };
 
-function pawSvg() {
-  // main pad + four toe beans, with a tiny face on the pad
+// every session has a family: the main agent is a human head, its sub-agents are smaller relatives of that head (same head and skin, a feature or two swapped)
+const faceCache = new Map();
+function mainFace(session) { if (!faceCache.has(session)) faceCache.set(session, Faces.random(Faces.hash('main:' + session), { human: true })); return faceCache.get(session); }
+// a sub-agent card carries a small portrait of its parent (the session's main agent), framed in the main agent's colour
+function parentChip(session, isMain) {
+  if (isMain) return '';
+  return `<span class="parentface" style="--mh:${hueOf(session + 'main')}" title="Main agent of this session">${Faces.compose(mainFace(session), { size: 30, title: 'main agent' })}</span>`;
+}
+// sub-agents wear the hat that fits what they are doing (the main agent keeps its crown)
+const HAT_OF = { explore: 'pith', web: 'sailor', code: 'hard', shell: 'beanie', sql: 'bowler', ask: 'party', work: 'chef', think: 'wizard' };
+function agentSvg(source, session = '', id = 'main', isMain = true) {
+  const spec = isMain ? mainFace(session) : Faces.derive(mainFace(session), Faces.hash(session + id));
+  const f = Faces.pieces(spec), k = isMain ? 1 : +(0.7 + (f.scale - 0.55)).toFixed(2); // relatives are drawn smaller, anchored at the chin
+  const ink = '#2b1b12', st = `stroke="${ink}" stroke-linecap="round" stroke-linejoin="round" fill="none"`;
   return `<svg class="paw" viewBox="-4 -22 124 124" aria-hidden="true">
+    <g class="bodyg">
     <circle class="fx-halo" cx="50" cy="58" r="50" fill="none" stroke="var(--paw)" stroke-width="3"/>
     <g class="fx-orbit" transform="translate(50 58)"><g fill="var(--paw-dark)" opacity=".75">
       <circle cx="56" cy="0" r="2.6"/><circle cx="-28" cy="48.5" r="2.6"/><circle cx="-28" cy="-48.5" r="2.6"/></g>
       <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="16s" repeatCount="indefinite" additive="sum"/></g>
-    <g class="toes" fill="var(--paw)" stroke="var(--paw-dark)" stroke-width="2">
-      <g class="toe"><ellipse cx="20" cy="42" rx="10" ry="13" transform="rotate(-20 20 42)"/><path class="claw" transform="rotate(-20 20 42)" d="M16 31Q17 21 23 17Q24 25 24 31Z"/></g>
-      <g class="toe"><ellipse cx="38" cy="26" rx="10" ry="14" transform="rotate(-6 38 26)"/><path class="claw" transform="rotate(-6 38 26)" d="M34 14Q35 4 41 0Q42 8 42 14Z"/></g>
-      <g class="toe"><ellipse cx="62" cy="26" rx="10" ry="14" transform="rotate(6 62 26)"/><path class="claw" transform="rotate(6 62 26)" d="M58 14Q59 4 65 0Q66 8 66 14Z"/></g>
-      <g class="toe"><ellipse cx="80" cy="42" rx="10" ry="13" transform="rotate(20 80 42)"/><path class="claw" transform="rotate(20 80 42)" d="M76 31Q77 21 83 17Q84 25 84 31Z"/></g>
-    </g>
-    <path d="M50 44c-17 0-30 14-30 28 0 10 8 16 17 16 6 0 9-3 13-3s7 3 13 3c9 0 17-6 17-16 0-14-13-28-30-28z"
-      fill="var(--paw)" stroke="var(--paw-dark)" stroke-width="2"/>
-    <g class="face">
-      <g class="eye-open" fill="#3b2f2f"><circle cx="41" cy="66" r="3.6"/><circle cx="59" cy="66" r="3.6"/>
-        <circle cx="42.2" cy="64.8" r="1.1" fill="#fff"/><circle cx="60.2" cy="64.8" r="1.1" fill="#fff"/></g>
-      <g class="eye-closed" stroke="#3b2f2f" stroke-width="2.4" stroke-linecap="round" fill="none"><path d="M37 66q4 3 8 0M55 66q4 3 8 0"/></g>
-      <g class="eye-happy" stroke="#3b2f2f" stroke-width="2.4" stroke-linecap="round" fill="none"><path d="M37 68q4-6 8 0M55 68q4-6 8 0"/></g>
-      <g class="eye-sleepy" stroke="#3b2f2f" stroke-width="2.4" stroke-linecap="round" fill="none"><path d="M37.4 66.5h7.2M55.4 66.5h7.2"/><path d="M38 66.5a3.2 3.2 0 0 0 6 0M56 66.5a3.2 3.2 0 0 0 6 0" fill="#3b2f2f" stroke-width="1.4"/></g>
-      <g class="dizzy-eyes" stroke="#3b2f2f" stroke-width="1.8" stroke-linecap="round" fill="none"><circle cx="41" cy="66" r="5.4" fill="#fff" stroke-width="1.5"/><circle cx="59" cy="66" r="5.4" fill="#fff" stroke-width="1.5"/>
-        <path d="M41 66m0-.1a1 1 0 1 1 1.6 1.4a2.6 2.6 0 1 1-3.8-3 4 4 0 1 1 5.4 5.2" transform="rotate(0 41 66)"/><path d="M59 66m0-.1a1 1 0 1 1 1.6 1.4a2.6 2.6 0 1 1-3.8-3 4 4 0 1 1 5.4 5.2"/></g>
-      <ellipse class="yawn" cx="50" cy="82" rx="3.2" ry="3.8" fill="#3b2f2f"/>
-      <g class="eye-x" stroke="#3b2f2f" stroke-width="2.4" stroke-linecap="round"><path d="M38 63l6 6M44 63l-6 6M56 63l6 6M62 63l-6 6"/></g>
-      <ellipse cx="50" cy="74" rx="3.4" ry="2.6" fill="var(--bean)"/>
-      <path class="mouth" d="M50 76.5v2.5m-4 0q4 3 8 0" stroke="#3b2f2f" stroke-width="1.8" stroke-linecap="round" fill="none"/>
-      <circle class="cheek" cx="33" cy="73" r="3.5" fill="var(--bean)" opacity=".35"/><circle class="cheek" cx="67" cy="73" r="3.5" fill="var(--bean)" opacity=".35"/>
-      <g class="worry-eyes"><circle cx="41" cy="66" r="5.4" fill="#fff" stroke="#3b2f2f" stroke-width="1.5"/><circle cx="59" cy="66" r="5.4" fill="#fff" stroke="#3b2f2f" stroke-width="1.5"/>
-        <circle class="pupil" cx="41.8" cy="64.6" r="2.1" fill="#3b2f2f"/><circle class="pupil" cx="58.2" cy="64.6" r="2.1" fill="#3b2f2f"/></g>
-      <path class="worry-brows" d="M34 59.5L43 55.2M66 59.5L57 55.2" stroke="#3b2f2f" stroke-width="2.3" stroke-linecap="round" fill="none"/>
-      <path class="worry-mouth" d="M44 83q3-2.8 6 0t6 0" stroke="#3b2f2f" stroke-width="1.9" stroke-linecap="round" fill="none"/>
-      <path class="brows" d="M35 59.5l8-2.6M65 59.5l-8-2.6" stroke="#3b2f2f" stroke-width="2.3" stroke-linecap="round" fill="none"/>
-    </g>
-    <g class="crown" transform="translate(50 9) rotate(-5)">
+    <g class="bodyg"><g transform="translate(0 -2) scale(1.02)"><g transform="translate(50 90) scale(${k}) translate(-50 -90)" style="${f.style}">
+      ${f.ears}${f.head}${f.extra}${f.hair}
+      <g class="face">
+      <g class="eye-open">${f.eyes}</g>
+      <g class="eye-closed" ${st} stroke-width="3"><path d="M30 48q7 5 14 0M56 48q7 5 14 0"/></g>
+      <g class="eye-happy" ${st} stroke-width="3"><path d="M30 51q7-8 14 0M56 51q7-8 14 0"/></g>
+      <g class="eye-sleepy" ${st} stroke-width="3"><path d="M30 48h14M56 48h14"/><path d="M31 48a6 6 0 0 0 12 0M57 48a6 6 0 0 0 12 0" fill="${ink}" stroke-width="1.6"/></g>
+      <g class="eye-x" ${st} stroke-width="3"><path d="M32 43l10 10M42 43l-10 10M58 43l10 10M68 43l-10 10"/></g>
+      <g class="dizzy-eyes" ${st} stroke-width="2"><circle cx="37" cy="48" r="7.5" fill="#fff"/><circle cx="63" cy="48" r="7.5" fill="#fff"/>
+        <path d="M41 66m0-.1a1 1 0 1 1 1.6 1.4a2.6 2.6 0 1 1-3.8-3 4 4 0 1 1 5.4 5.2" transform="translate(-4 -18)"/><path d="M59 66m0-.1a1 1 0 1 1 1.6 1.4a2.6 2.6 0 1 1-3.8-3 4 4 0 1 1 5.4 5.2" transform="translate(4 -18)"/></g>
+      <g class="worry-eyes"><circle cx="37" cy="48" r="7.5" fill="#fff" stroke="${ink}" stroke-width="2.6"/><circle cx="63" cy="48" r="7.5" fill="#fff" stroke="${ink}" stroke-width="2.6"/>
+        <circle class="pupil" cx="38" cy="46" r="2.6" fill="${ink}"/><circle class="pupil" cx="62" cy="46" r="2.6" fill="${ink}"/></g>
+      <path class="worry-brows" d="M27 40L45 33M73 40L55 33" ${st} stroke-width="3"/>
+      <path class="brows" d="M28 35L46 41M72 35L54 41" ${st} stroke-width="3.4"/>
+      <ellipse class="yawn" cx="50" cy="80" rx="4.5" ry="5.5" fill="${ink}"/>
+      <path class="worry-mouth" d="M40 82q5-4 10 0t10 0" ${st} stroke-width="3"/>
+      <g class="hbrows">${f.brows}</g>${f.nose}<g class="mouth">${f.mouth}</g>
+      </g>${Object.keys(HAT_OF).map(k => `<g class="hat h-${k}">${Faces.hatFor(HAT_OF[k], spec.head)}</g>`).join('')}</g></g></g>
+    <g class="crown" transform="translate(50 6) rotate(-5)">
       <path d="M-15 8L-17 -8L-8 -1L0 -12L8 -1L17 -8L15 8Z" fill="#f6c945" stroke="#c9961a" stroke-width="2" stroke-linejoin="round"/>
       <rect x="-15" y="5" width="30" height="5.5" rx="2" fill="#e8b32c" stroke="#c9961a" stroke-width="1.6"/>
       <circle cx="-17" cy="-8" r="2.3" fill="#fff3b0" stroke="#c9961a" stroke-width="1.3"/><circle cx="0" cy="-12" r="2.3" fill="#fff3b0" stroke="#c9961a" stroke-width="1.3"/><circle cx="17" cy="-8" r="2.3" fill="#fff3b0" stroke="#c9961a" stroke-width="1.3"/>
@@ -69,7 +88,8 @@ function pawSvg() {
     <g fill="#f6c945">
       <path class="fx-spark spark1" transform="translate(112 54)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/><path class="fx-spark spark2" transform="translate(-1 48)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/>
       <path class="fx-spark spark3" transform="translate(22 -8)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/><path class="fx-spark spark4" transform="translate(106 90)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/></g>
-    <g class="pbadge" transform="translate(90 2) scale(1.35)"><g class="bob">
+    </g>
+    <g class="pbadge" transform="translate(82 4) scale(1.3)"><g class="bob">
       <circle class="base" r="19" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
       <g class="thought">
         <g fill="var(--card)" stroke="var(--line)" stroke-width="4"><circle cx="-10" cy="-6" r="10"/><circle cx="8" cy="-8" r="11"/><circle cx="15" cy="4" r="9"/><circle cx="-1" cy="11" r="11"/><circle cx="-14" cy="6" r="8"/><circle cx="1" cy="0" r="11"/></g><g fill="var(--card)"><circle cx="-10" cy="-6" r="10"/><circle cx="8" cy="-8" r="11"/><circle cx="15" cy="4" r="9"/><circle cx="-1" cy="11" r="11"/><circle cx="-14" cy="6" r="8"/><circle cx="1" cy="0" r="11"/></g>
@@ -210,7 +230,7 @@ const demo = now => {
   rest.forEach((x, i) => { x.used = SAMPLE.slice(i, i + 2 + i * 2); }); // demo only: the done card shows 4 and a +n
   const cyc = all.find(x => x.id === 'r0'), phase = Math.floor(now / 9000) % 4; // demo only: one card keeps finishing and failing, to preview the reactions
   if (cyc && phase % 2) Object.assign(cyc, { status: phase === 1 ? 'done' : 'failed', endedAt: now - 1000 }); // running, done, running, failed
-  all.forEach((x, i) => { x.source = i % 3 === 1 ? 'claude' : 'copilot'; }); // some of the demo cards are Claude Code ones
+  all.forEach((x, i) => { x.source = ['copilot', 'claude', 'codex', 'gemini'][i % 4]; }); // the demo cards cycle through the four tools
   // demo only: every few seconds 2-3 random cards jump to the front and push the rest back, to preview the slide
   const step = Math.floor(now / 5000);
   if (!demoOrder) demoOrder = all.map(x => x.id);
@@ -380,7 +400,7 @@ function render(snap) {
     if (!el) {
       el = document.createElement('article');
       el.className = 'card';
-      el.innerHTML = `<div class="stage"><span class="badge"></span><span class="fails" hidden></span><span class="typebadge" hidden></span><span class="used" hidden></span>${pawSvg()}</div><div class="body"><div class="top"><span class="name"></span></div>
+      el.innerHTML = `<div class="stage"><span class="badge"></span><span class="fails" hidden></span><span class="typebadge" hidden></span><span class="used" hidden></span>${parentChip(a.session, a.type === 'main agent')}${agentSvg(a.source, a.session, a.id, a.type === 'main agent')}</div><div class="body"><div class="top"><span class="name"></span></div>
         <div class="sub"></div><div class="doing"></div><div class="meta"></div></div>`;
       el.style.setProperty('--h', hueOf(key));
       const stage = el.querySelector('.stage');
@@ -391,7 +411,7 @@ function render(snap) {
       const toggle = () => { el.classList.toggle('open'); last && render(last); };
       doing.onclick = e => { if (!getSelection().toString()) toggle(); };
       doing.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } };
-      if (reduceMotion.matches) el.querySelector('svg').pauseAnimations();
+      if (reduceMotion.matches) { el.querySelector('svg').pauseAnimations(); document.getElementById('boilsvg')?.pauseAnimations(); }
       cards.set(key, el);
     }
     const reaction = el._status && PawMood.reactionOf(el._status, a); // only for an agent we saw running, never on page load
@@ -402,7 +422,8 @@ function render(snap) {
     el.dataset.status = a.status;
     const mood = PawMood.moodOf(a, now);
     if (mood) el.dataset.mood = mood; else delete el.dataset.mood;
-    el.dataset.source = a.source || 'copilot'; // Claude Code agents have claws, not paws
+    el.dataset.source = a.source || 'copilot';
+    if (el._tool !== (a.source || 'copilot')) { el._tool = a.source || 'copilot'; el.querySelector('.toolwrap')?.remove(); el.insertAdjacentHTML('afterbegin', toolSvg(el._tool)); }
     el.toggleAttribute('data-main', a.type === 'main agent'); // the one in charge wears a crown
     el.dataset.lv = LEVEL[a.effort] || 2;
     // one red cross under the paw for every failed attempt so far (the newest pops in)

@@ -47,7 +47,7 @@ export function buildHistory(sessions, { now = Date.now(), limit = 40, maxAgeMs 
     }).sort((x, y) => (x.id === 'main' ? -1 : y.id === 'main' ? 1 : x.segments[0].from - y.segments[0].from));
     const from = Math.min(...actors.map(a => a.segments[0].from));
     const to = Math.max(...actors.map(a => a.segments[a.segments.length - 1].to));
-    out.push({ session: id.slice(0, 8), source: s.product ? 'claude' : 'copilot', name: main, project: s.meta?.cwd ? s.meta.cwd.split(/[\\/]/).filter(Boolean).pop() : '',
+    out.push({ session: id.slice(0, 8), source: s.src || (s.product ? 'claude' : 'copilot'), name: main, project: s.meta?.cwd ? s.meta.cwd.split(/[\\/]/).filter(Boolean).pop() : '',
       branch: s.meta?.branch || '', live: !!s.alive, from, to, calls: actors.reduce((n, a) => n + a.calls, 0),
       prompts: (s.prompts || []).filter(p => p.t <= to).slice(-20), actors });
   }

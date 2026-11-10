@@ -21,8 +21,12 @@
 <main id="grid" class="grid"></main>
 <p id="empty" class="empty" hidden>No agents yet. Start a Copilot CLI session and its paws will show up here.</p>
 <section id="history" class="history" hidden></section>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs id="brand-defs"></defs></svg>
+<svg id="boilsvg" width="0" height="0" style="position:absolute" aria-hidden="true"><defs id="brand-defs"></defs>
+  <!-- hand-drawn "boiling" line: the outline re-wobbles a few times a second, like cels redrawn by hand -->
+  <filter id="boil" x="-12%" y="-12%" width="124%" height="124%"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="1"><animate attributeName="seed" values="1;4;7;2;9;5" dur=".7s" calcMode="discrete" repeatCount="indefinite"/></feTurbulence><feDisplacementMap in="SourceGraphic" scale="2.6"/></filter>
+</svg>
 <script src="brands.js"></script>
+<script src="faces.js"></script>
 <script src="mood.js"></script>
 <script src="meter.js"></script>
 <script src="app.js"></script>

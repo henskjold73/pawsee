@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pawsee · faces</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap{max-width:1100px;margin:0 auto;padding:24px 0}
+  .layout{display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start}
+  @media (max-width:700px){.layout{grid-template-columns:1fr}}
+  .big{background:var(--card);border:2px solid var(--line);border-radius:22px;padding:14px;text-align:center}
+  @media (min-width:701px){.big{position:sticky;top:12px}}
+  .big .stagebox{background:hsl(25 90% 94%);border-radius:16px;display:grid;place-items:center;padding:10px}
+  @media (prefers-color-scheme:dark){.big .stagebox{background:hsl(25 25% 21%)}}
+  .btns{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+  .btns button{all:unset;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;border:1px solid var(--run);background:color-mix(in srgb,var(--run) 18%,var(--card))}
+  .cat{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:10px 14px;margin-bottom:12px}
+  .cat h3{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .opts{display:flex;flex-wrap:wrap;gap:8px}
+  .opt{all:unset;cursor:pointer;border-radius:14px;border:2px solid transparent;padding:2px;text-align:center;font-size:11px;color:var(--muted)}
+  .opt:hover{border-color:var(--line)}
+  .opt[aria-pressed=true]{border-color:var(--run);color:var(--ink);background:color-mix(in srgb,var(--run) 14%,var(--card))}
+  .opt:focus-visible{outline:2px solid var(--wait)}
+  .opt svg{display:block}
+  .sw{width:26px;height:26px;border-radius:50%;border:2px solid var(--ink-line,#2b1b12)}
+  .family h2{font-size:14px;margin:16px 0 8px}
+  .famrow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+  .kid{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:8px;display:grid;place-items:center}
+  pre{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px;font-size:12px;overflow:auto}
+</style>
+</head>
+<body>
+<header><h1>🗿 faces</h1><span class="summary">Pick a part from each row to build the main agent's head. The small ones are its sub-agents: children of the main head: some features run in the family, others are their own.</span></header>
+<div class="wrap">
+  <div class="layout">
+    <div class="big"><div class="stagebox" id="big"></div>
+      <div class="btns"><button id="rand" type="button">🎲 Random head</button><button id="shuf" type="button">↻ New relatives</button><button id="copy" type="button">Copy spec</button></div></div>
+    <div id="cats"></div>
+  </div>
+  <div class="family"><h2>Sub-agents (derived from the main head)</h2><div class="famrow" id="fam"></div></div>
+  <pre id="json"></pre>
+</div>
+<script src="faces.js"></script>
+<script>
+let spec = { ...Faces.DEFAULT }, seed = 1;
+const $ = id => document.getElementById(id);
+function draw() {
+  $('big').innerHTML = Faces.compose(spec, { size: 220 });
+  $('cats').innerHTML = '';
+  for (const k of [...Faces.ORDER, 'hat']) {
+    const c = document.createElement('div'); c.className = 'cat';
+    const off = Faces.PAWLIKE.has(spec.head) && k !== 'head';
+    if (off) { c.style.opacity = .4; c.style.pointerEvents = 'none'; }
+    c.innerHTML = `<h3>${k}${off ? ' · fixed on paws' : ''}</h3><div class="opts"></div>`;
+    const row = c.querySelector('.opts');
+    for (const n of Faces.names(k)) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'opt'; b.setAttribute('aria-pressed', spec[k] === n);
+      b.innerHTML = Faces.compose({ ...spec, [k]: n }, { size: 64, title: n }) + `<div>${n}</div>`;
+      b.onclick = () => { spec[k] = n; draw(); };
+      row.appendChild(b);
+    }
+    $('cats').appendChild(c);
+  }
+  const paw = Faces.PAWLIKE.has(spec.head);
+  const skins = document.createElement('div'); skins.className = 'cat';
+  skins.innerHTML = paw ? '<h3>paw colour</h3><div class="opts" id="sk"></div>' : '<h3>skin</h3><div class="opts" id="sk"></div><h3 style="margin-top:10px">hair colour</h3><div class="opts" id="hc"></div>';
+  $('cats').appendChild(skins);
+  const swatch = (host, table, key, idx) => { for (const [n, v] of Object.entries(table)) { const b = document.createElement('button'); b.className = 'opt'; b.setAttribute('aria-pressed', spec[key] === n); b.innerHTML = `<div class="sw" style="background:${idx === null ? v : v[0]}"></div>`; b.title = n; b.onclick = () => { spec[key] = n; draw(); }; $(host).appendChild(b); } };
+  if (paw) swatch('sk', Faces.PAWCOLOR, 'pawColor', 0);
+  else { swatch('sk', Faces.SKIN, 'skin', 0); swatch('hc', Faces.HAIR, 'hairColor', null); }
+  family();
+}
+function family() {
+  $('fam').innerHTML = '';
+  for (let i = 0; i < 10; i++) { const d = document.createElement('div'); d.className = 'kid'; d.innerHTML = Faces.compose(Faces.derive(spec, seed * 100 + i), { size: 110 }); $('fam').appendChild(d); }
+  $('json').textContent = JSON.stringify(spec);
+}
+$('rand').onclick = () => { spec = Faces.random(); draw(); };
+$('shuf').onclick = () => { seed++; family(); };
+$('copy').onclick = () => navigator.clipboard?.writeText(JSON.stringify(spec));
+draw();
+</script>
+</body>
+</html>

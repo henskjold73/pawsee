@@ -1,13 +1,20 @@
 # 🐾 pawsee
 
-Cute animated paws that show what your **GitHub Copilot CLI** and **Claude Code** background agents are doing.
+Cute animated paws that show what your **GitHub Copilot CLI**, **Claude Code**, **Codex CLI** and **Gemini CLI** agents are doing.
 One card per agent: a paw that acts out the work (browsing, coding, exploring, running commands…),
 what it's doing right now, and what it just did.
 
 ![pawsee showing a grid of agents: a crowned main agent asking a question, working paws with thought bubbles and a finished one](docs/screenshot.jpg)
 *The `?demo` page: sample agents in every state.*
 
-pawsee only **reads** the session logs they already write: `~/.copilot/session-state` for Copilot CLI and `~/.claude/projects` for Claude Code.
+pawsee only **reads** the session logs they already write: `~/.copilot/session-state` for Copilot CLI, `~/.claude/projects` for Claude Code,
+`~/.codex/sessions` for Codex CLI and `~/.gemini/tmp` for Gemini CLI. Each tool gets its own toes: round beans for Copilot, claws for Claude Code,
+blocky square toes for Codex and little sparkles for Gemini. (Point pawsee elsewhere with `--dir`, `--claude-dir`, `--codex-dir` and `--gemini-dir`.)
+
+> **Gemini CLI support is experimental.** It was written from other tools' notes on the log format, not from a live Gemini session, and it
+> doesn't read sub-agent files or the older single-file `session-*.json` logs. If your logs differ, pawsee shows its "can't make sense of some
+> logs" banner. Please [open an issue](https://github.com/henskjold73/pawsee/issues) with what you see. Codex support was built against real logs.
+> Codex and Gemini have no process registry, so a session counts as live while its log is being written, and the card can't jump to its terminal.
 The page is served on `localhost` only, and none of your session data leaves your machine.
 The one network request pawsee makes is a plain check of GitHub's "latest release" at start-up and every 6 hours, to show a small "update available" note (it sends nothing but a User-Agent of `pawsee-update-check`). Turn it off with `--no-update-check` or `PAWSEE_NO_UPDATE_CHECK=1`.
 
