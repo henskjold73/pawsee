@@ -53,18 +53,35 @@ function parentChip(session, isMain) {
 }
 // sub-agents wear the hat that fits what they are doing (the main agent keeps its crown)
 const HAT_OF = { explore: 'pith', web: 'sailor', code: 'hard', shell: 'beanie', sql: 'bowler', ask: 'party', work: 'chef', think: 'wizard' };
+// a stick body hangs from the chin: half as tall as the head (head heights come from the head outlines in faces.js).
+// It is jointed (thigh+shin, arm+forearm) so CSS can walk, run, squat and jump it. `lower` is the legs, `upper` is torso+arms and
+// stays open: agentSvg puts the head inside it (so the head rides with the torso) and closes it.
+const HEAD_Y = { egg: [9, 91], round: [14, 92], square: [11, 93], pear: [11, 93], long: [5, 95], paw: [44, 88], claw: [44, 88] };
+function stickBody(head) {
+  const [top, bot] = HEAD_Y[head] || HEAD_Y.egg, B = (bot - top) / 2;            // body height = 50% of head height
+  const neck = bot - 3, hip = bot + B * .4, shoulder = bot + B * .2, foot = bot + B;
+  const lx = B * .22, ly = foot - hip, ax = B * .5, ay = B * .28;
+  const f = n => +n.toFixed(2);
+  // a two-bone limb drawn from (0,0) at its joint; `x`,`y` is the whole limb's vector. Left limbs get class side-l (--s:1), right ones side-r (--s:-1).
+  const limb = (cls, bone, sub, side, x, y) => `<g class="${bone} side-${side}"><path d="M0 0l${f(x / 2)} ${f(y / 2)}"/><g transform="translate(${f(x / 2)} ${f(y / 2)})"><g class="${sub}"><path d="M0 0l${f(x / 2)} ${f(y / 2)}"/></g></g></g>`;
+  const at = (x, y, inner) => `<g transform="translate(${x} ${f(y)})">${inner}</g>`;
+  return { open: `<g class="stick" style="--d:${f(ly * .24)}px;--j:${f(B * .8)}px" stroke="#2b1b12" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" fill="none">`
+      + `<g class="lower">${at(50, hip, limb('', 'thigh', 'shin', 'l', -lx, ly) + limb('', 'thigh', 'shin', 'r', lx, ly))}</g>`
+      + `<g class="upper"><path class="torso" d="M50 ${f(neck)}V${f(hip)}"/>${at(50, shoulder, limb('', 'arm', 'fore', 'l', -ax, ay) + limb('', 'arm', 'fore', 'r', ax, ay))}`,
+    close: '</g></g>' };
+}
 function agentSvg(source, session = '', id = 'main', isMain = true) {
   const spec = isMain ? mainFace(session) : Faces.derive(mainFace(session), Faces.hash(session + id));
-  const f = Faces.pieces(spec), k = isMain ? 1 : +(0.7 + (f.scale - 0.55)).toFixed(2); // relatives are drawn smaller, anchored at the chin
+  const body = stickBody(spec.head), f = Faces.pieces(spec), k = isMain ? 1 : +(0.7 + (f.scale - 0.55)).toFixed(2); // relatives are drawn smaller, anchored at the chin
   const ink = '#2b1b12', st = `stroke="${ink}" stroke-linecap="round" stroke-linejoin="round" fill="none"`;
-  return `<svg class="paw" viewBox="-4 -22 124 124" aria-hidden="true">
+  return `<svg class="paw" viewBox="-23 -22 162 162" aria-hidden="true">
     <g class="bodyg">
     <circle class="fx-halo" cx="50" cy="58" r="50" fill="none" stroke="var(--paw)" stroke-width="3"/>
     <g class="fx-orbit" transform="translate(50 58)"><g fill="var(--paw-dark)" opacity=".75">
       <circle cx="56" cy="0" r="2.6"/><circle cx="-28" cy="48.5" r="2.6"/><circle cx="-28" cy="-48.5" r="2.6"/></g>
       <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="16s" repeatCount="indefinite" additive="sum"/></g>
     <g class="bodyg"><g transform="translate(0 -2) scale(1.02)"><g transform="translate(50 90) scale(${k}) translate(-50 -90)" style="${f.style}">
-      ${f.ears}${f.head}${f.extra}${f.hair}
+      ${body.open}${f.ears}${f.head}${f.extra}${f.hair}
       <g class="face">
       <g class="eye-open">${f.eyes}</g>
       <g class="eye-closed" ${st} stroke-width="3"><path d="M30 48q7 5 14 0M56 48q7 5 14 0"/></g>
@@ -80,13 +97,14 @@ function agentSvg(source, session = '', id = 'main', isMain = true) {
       <ellipse class="yawn" cx="50" cy="80" rx="4.5" ry="5.5" fill="${ink}"/>
       <path class="worry-mouth" d="M40 82q5-4 10 0t10 0" ${st} stroke-width="3"/>
       <g class="hbrows">${f.brows}</g>${f.nose}<g class="mouth">${f.mouth}</g>
-      </g>${Object.keys(HAT_OF).map(k => `<g class="hat h-${k}">${Faces.hatFor(HAT_OF[k], spec.head)}</g>`).join('')}</g></g></g>
+      </g>${Object.keys(HAT_OF).map(k => `<g class="hat h-${k}">${Faces.hatFor(HAT_OF[k], spec.head)}</g>`).join('')}
     <g class="crown" transform="translate(50 6) rotate(-5)">
       <path d="M-15 8L-17 -8L-8 -1L0 -12L8 -1L17 -8L15 8Z" fill="#f6c945" stroke="#c9961a" stroke-width="2" stroke-linejoin="round"/>
       <rect x="-15" y="5" width="30" height="5.5" rx="2" fill="#e8b32c" stroke="#c9961a" stroke-width="1.6"/>
       <circle cx="-17" cy="-8" r="2.3" fill="#fff3b0" stroke="#c9961a" stroke-width="1.3"/><circle cx="0" cy="-12" r="2.3" fill="#fff3b0" stroke="#c9961a" stroke-width="1.3"/><circle cx="17" cy="-8" r="2.3" fill="#fff3b0" stroke="#c9961a" stroke-width="1.3"/>
       <circle class="gem" cx="0" cy="7.8" r="2" fill="var(--bean)"/>
     </g>
+    ${body.close}</g></g></g>
     <g fill="#f6c945">
       <path class="fx-spark spark1" transform="translate(112 54)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/><path class="fx-spark spark2" transform="translate(-1 48)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/>
       <path class="fx-spark spark3" transform="translate(22 -8)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/><path class="fx-spark spark4" transform="translate(106 90)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/></g>
