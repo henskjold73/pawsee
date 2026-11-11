@@ -309,7 +309,7 @@ function handle(s, ev) {
       break;
     case 'user.message':
       if (!ev.agentId) { // the user's own prompt starts a new task, so old questions are moot
-        s.lastUserAt = ts; s.pending.clear();
+        s.lastUserAt = ts; s.pending.clear(); s.task = (s.task || 0) + 1; // each new task gets a new face
         recordPrompt(s, ts, d.content);
         const title = titleFromPrompt(d.content); // null for "yes", "now?" and the like: keep the previous title
         if (title) { s.promptTitle = title; s.promptFull = clip(d.content, 1500, true); }
@@ -697,7 +697,7 @@ function snapshot() {
         status: base.status, kind: base.kind, startedAt: base.startedAt || now, endedAt: base.endedAt, activity: base.activity,
         activityFull: base.activityFull, said: base.said, saidFull: base.saidFull, activityAt: base.activityAt || now,
         tools: base.tools, tokens: base.tokens || 0, burn: burnOf(base, now), repeat: base.repeat || 0, used: base.used || [], aic: s.mainAic, effort: base.effort, brand: base.brand, brandAt: base.brandAt, worry: base.worry || 0, worryAt: base.worryAt || 0, lastError: base.lastError || '', fails: base.fails || 0,
-        label: idle ? (working ? 'waiting on agents' : 'your turn') : undefined };
+        label: idle ? (working ? 'waiting on agents' : 'your turn') : undefined, task: s.task || 0 };
       if (s.promptFull && base.activityFull) card.activityFull = `${base.activityFull}\n\n— current prompt —\n${s.promptFull}`;
       if (idle && working) {
         card.activity = card.activityFull = `waiting on ${working} background agent${working > 1 ? 's' : ''} to finish`;

@@ -43,7 +43,9 @@ const LABEL = { waiting: 'needs you', running: 'working', idle: 'napping', done:
 
 // every session has a family: the main agent is a human head, its sub-agents are smaller relatives of that head (same head and skin, a feature or two swapped)
 const faceCache = new Map();
-function mainFace(session) { if (!faceCache.has(session)) faceCache.set(session, Faces.random(Faces.hash('main:' + session), { human: true })); return faceCache.get(session); }
+// the face changes with every new task in the session, so the same session doesn't wear one face forever
+const taskOf = new Map();
+function mainFace(session) { const k = session + '#' + (taskOf.get(session) || 0); if (!faceCache.has(k)) faceCache.set(k, Faces.random(Faces.hash('main:' + k), { human: true })); return faceCache.get(k); }
 // a sub-agent card carries a small portrait of its parent (the session's main agent), framed in the main agent's colour
 function parentChip(session, isMain) {
   if (isMain) return '';
@@ -392,6 +394,7 @@ function render(snap) {
   const agents = snap.agents, fadeMs = snap.fadeMs || 240e3;
   const seen = new Set();
   let cheered = 0; // agents that wrapped up since the last render
+  for (const a of agents) if (a.type === 'main agent') taskOf.set(a.session, a.task || 0);
   for (const a of agents) a.zoomies = PawMeter.zoomiesOf(a, agents.filter(o => o !== a));
   agents.forEach((a, i) => {
     const key = a.session + a.id;
@@ -425,6 +428,16 @@ function render(snap) {
     el.dataset.source = a.source || 'copilot';
     if (el._tool !== (a.source || 'copilot')) { el._tool = a.source || 'copilot'; el.querySelector('.toolwrap')?.remove(); el.insertAdjacentHTML('afterbegin', toolSvg(el._tool)); }
     el.toggleAttribute('data-main', a.type === 'main agent'); // the one in charge wears a crown
+    const faceKey = a.session + '#' + (taskOf.get(a.session) || 0);
+    if (el._face !== faceKey) { // a new task began: put on a new face (and, for sub-agents, the new parent portrait)
+      if (el._face) {
+        const isMain = a.type === 'main agent';
+        el.querySelector('.paw')?.replaceWith(Object.assign(document.createElement('div'), { innerHTML: agentSvg(a.source, a.session, a.id, isMain) }).firstElementChild);
+        el.querySelector('.parentface')?.remove();
+        if (!isMain) el.querySelector('.stage .badge')?.insertAdjacentHTML('afterend', parentChip(a.session, false));
+      }
+      el._face = faceKey;
+    }
     el.dataset.lv = LEVEL[a.effort] || 2;
     // one red cross under the paw for every failed attempt so far (the newest pops in)
     const fails = a.fails || 0, fx = el.querySelector('.fails');
