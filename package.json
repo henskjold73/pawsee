@@ -47,7 +47,7 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "dev": "node --watch --watch-path=. --watch-path=public server.mjs",
+    "dev": "node --watch --watch-path=. --watch-path=public server.mjs --port 4748",
     "build:binary": "node scripts/build-binary.mjs",
     "test": "node --test",
     "mutate": "stryker run",

@@ -120,6 +120,8 @@ New files are picked up without restarting. Square images with a transparent or 
 npm test   # unit tests plus end-to-end tests that run the server against fake Copilot and Claude Code logs
 ```
 
+`npm run dev` restarts on every change and serves on **4748** (without opening a tab), so it never collides with a normal `pawsee` / `npx @horrible73/pawsee` run on 4747.
+
 ## Notes
 
 - If a log format changes under it, pawsee shows a red notice at the top ("can't make sense of some logs") instead of quietly showing fewer agents. It appears when a session has lines that won't parse, or a long session where nothing was recognised. Please [open an issue](https://github.com/henskjold73/pawsee/issues) with the CLI version you use.
