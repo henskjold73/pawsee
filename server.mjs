@@ -828,7 +828,8 @@ server.listen(PORT, '127.0.0.1', () => {
   const url = `http://localhost:${PORT}`;
   console.log(`🐾 pawsee watching ${ROOT}\n   and ${CLAUDE_ROOT}\n   and ${CODEX_ROOT}\n   and ${GEMINI_ROOT}\n   your skill images: ${LOGO_DIR}\n   ${url}`);
   if (![ROOT, CLAUDE_ROOT, CODEX_ROOT, GEMINI_ROOT].some(existsSync)) console.log(`   (no Copilot CLI, Claude Code, Codex or Gemini sessions found yet — start one and paws will appear)`);
-  if (!opt['no-open']) openBrowser(url);
+  // `node --watch` (npm run dev) restarts the server on every file change: opening a tab each time floods the browser, so only a plain start opens one (node sets WATCH_REPORT_DEPENDENCIES in the restarted child)
+  if (!opt['no-open'] && !process.env.WATCH_REPORT_DEPENDENCIES) openBrowser(url);
 });
 
 if (UPDATE_CHECK) { checkUpdate(); setInterval(checkUpdate, 6 * 3600e3).unref(); }
