@@ -1,14 +1,14 @@
 # 🐾 pawsee
 
-Cute animated paws that show what your **GitHub Copilot CLI**, **Claude Code**, **Codex CLI** and **Gemini CLI** agents are doing.
-One card per agent: a paw that acts out the work (browsing, coding, exploring, running commands…),
+Cute animated little people that show what your **GitHub Copilot CLI**, **Claude Code**, **Codex CLI** and **Gemini CLI** agents are doing.
+One card per agent: a hand-drawn character with a stick body that acts out the work (walking, running, squatting, jumping…),
 what it's doing right now, and what it just did.
 
-![pawsee showing a grid of agents: a crowned main agent asking a question, working paws with thought bubbles and a finished one](docs/screenshot.jpg)
-*The `?demo` page: sample agents in every state.*
+![pawsee showing six agents in motion: the crowned main agent waving because it needs you, one walking, two running, one squatting while it naps and one jumping because it is done](docs/pawsee.gif)
+*The `?demo` page: sample agents in every state (waving, walking, running, squatting, jumping). [Still image](docs/screenshot.jpg).*
 
 pawsee only **reads** the session logs they already write: `~/.copilot/session-state` for Copilot CLI, `~/.claude/projects` for Claude Code,
-`~/.codex/sessions` for Codex CLI and `~/.gemini/tmp` for Gemini CLI. Each tool gets its own toes: round beans for Copilot, claws for Claude Code,
+`~/.codex/sessions` for Codex CLI and `~/.gemini/tmp` for Gemini CLI. Each tool gets its own little paw in the corner of the card: round beans for Copilot, claws for Claude Code,
 blocky square toes for Codex and little sparkles for Gemini. (Point pawsee elsewhere with `--dir`, `--claude-dir`, `--codex-dir` and `--gemini-dir`.)
 
 > **Gemini CLI support is experimental.** It was written from other tools' notes on the log format, not from a live Gemini session, and it
@@ -77,21 +77,29 @@ The binaries aren't code-signed, so a browser download will be flagged: on macOS
 
 ## What you'll see
 
-| Paw | Meaning |
+| Card | Meaning |
 |---|---|
-| needs you (amber) | the main agent asked you a question, or an agent is waiting for your approval |
-| working, with a badge | an agent is running; the badge shows what kind of work |
-| napping | an agent finished its turn and is waiting for a new message |
-| done | finished; done and napping cards fade away after ~4 minutes (`PAWSEE_FADE_SECONDS`) |
-| failed | the agent errored |
+| needs you (amber) | the main agent asked you a question, or an agent is waiting for your approval. It stands and waves an arm |
+| working, with a badge | an agent is running; the badge shows what kind of work. It **walks**, or **runs** when the effort is high |
+| napping | an agent finished its turn and is waiting for a new message. It **squats** and rests |
+| done | finished; it **jumps**. Done and napping cards fade away after ~4 minutes (`PAWSEE_FADE_SECONDS`) |
+| failed | the agent errored. It squats, with crosses for each failed attempt |
 | grey | its session ended while it was still running |
 
-Paws have moods too: sleepy-eyed just after napping off and deeply asleep (slow breathing, extra z's) after two minutes, and dizzy (spiral eyes, circling stars) after lots of failed attempts in a row.
-When an agent that was running finishes, its paw does a happy hop with confetti; when it fails, it flops over.
+### Faces, families and hats
+
+Every session's **main agent** is a person with a crown, drawn from a kit of parts (head, ears, eyes, brows, nose, mouth, hair, skin).
+It gets **a new face every time you start a new task** (a new prompt), even inside the same session, so you can tell tasks apart. The same task always gets the same face.
+Its **sub-agents** are smaller relatives: same head and ears, a similar skin tone, a feature or two of their own, and a small portrait of the main agent in the corner of their card.
+Sub-agents wear the hat that fits what they're doing: a pith helmet to explore, a sailor cap on the web, a hard hat to code, a beanie in the shell, a bowler for SQL, a party hat when asking you something, a chef's hat for work and a wizard hat to think.
+The stick body is half as tall as the head. `/faces.html` shows the whole parts kit.
+
+Agents have moods too: sleepy-eyed just after napping off and deeply asleep (slow breathing, extra z's) after two minutes, worried (sweat drops) when an attempt fails, and dizzy (spiral eyes, circling stars) after lots of failed attempts in a row.
+When an agent that was running finishes, it does a happy jump with confetti; when it fails, it flops over.
 Sounds are off by default: click the "Sound off" button next to the version to switch on a soft chime when something needs you and another when the last working agent finishes (made in the browser, no audio files). They are off again every time you refresh the page.
 While the tab is in the background, the tab icon gets an amber count when something needs you (and the title flashes), or a green tick when work finished while you were away.
 
-Claude Code agents get claws on their toes, so you can tell them from Copilot CLI's paws at a glance.
+The paw in the corner of each card tells you which tool an agent belongs to (claws for Claude Code, round beans for Copilot CLI) at a glance.
 
 Each card also shows the AI credits (AIC) that agent has used, and the header shows the session total (Copilot CLI only: Claude Code doesn't log credits).
 Claude Code has no approval prompts in its logs, so "needs you" appears there for `AskUserQuestion` only.
