@@ -213,5 +213,5 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'colour', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'accent', colors: colors(ACCENT, null) }],
   });
 
-  return { name: 'monsters', label: 'Monsters', description: 'Fuzzy, spiky and slimy creatures with fangs, horns and tentacle limbs.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  return { name: 'monsters', label: 'Monsters', emoji: '👹', description: 'Fuzzy, spiky and slimy creatures with fangs, horns and tentacle limbs.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
 })());

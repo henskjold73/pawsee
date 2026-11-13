@@ -48,10 +48,12 @@
 <script src="faces/monsters.js"></script>
 <script src="faces/cats.js"></script>
 <script src="faces/vampires.js"></script>
+<script src="faces/halloween.js"></script>
+<script src="faces/ghosts.js"></script>
 <script>
 let spec = { ...Faces.DEFAULT }, seed = 1;
 // a picker for the face styles that are loaded; a style is chosen with ?faces=<name> (and remembered)
-if (Faces.styles().length > 1) { const sel = document.createElement('select'); sel.setAttribute('aria-label', 'face style'); for (const x of Faces.styles()) sel.add(new Option(x.label, x.name, false, x.name === Faces.style.name)); sel.onchange = () => { Faces.use(sel.value); spec = { ...Faces.DEFAULT }; draw(); }; document.querySelector('header').appendChild(sel); }
+if (Faces.styles().length > 1) { const sel = document.createElement('select'); sel.setAttribute('aria-label', 'face style'); for (const x of Faces.styles()) sel.add(new Option(x.emoji + ' ' + x.label, x.name, false, x.name === Faces.style.name)); sel.onchange = () => { Faces.use(sel.value); spec = { ...Faces.DEFAULT }; draw(); }; document.querySelector('header').appendChild(sel); }
 const $ = id => document.getElementById(id);
 function draw() {
   const ed = Faces.editor(spec);
