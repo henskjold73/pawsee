@@ -279,17 +279,16 @@ document.getElementById('snd').onclick = () => {
 };
 showSound();
 
-// swap the face style: the button steps through the styles that are loaded (and is hidden while there is only one). The choice is remembered.
-const facesBtn = document.getElementById('fcs');
+// swap the face style: a menu of the styles that are loaded (hidden while there is only one). The choice is remembered.
+const facesSel = document.getElementById('fcs');
 function showFaces() {
   const all = Faces.styles(), now = Faces.style;
-  facesBtn.hidden = all.length < 2;
-  facesBtn.textContent = '🙂 ' + now.label;
-  facesBtn.title = `Face style: ${now.label}${now.description ? ' (' + now.description + ')' : ''}. Click for the next one`;
+  facesSel.hidden = all.length < 2;
+  facesSel.replaceChildren(...all.map(x => Object.assign(new Option('🙂 ' + x.label, x.name, false, x.name === now.name), { title: x.description })));
+  facesSel.title = `Face style: ${now.label}${now.description ? ' (' + now.description + ')' : ''}`;
 }
-facesBtn.onclick = () => {
-  const all = Faces.styles(), at = all.findIndex(s => s.name === Faces.style.name);
-  Faces.use(all[(at + 1) % all.length].name);
+facesSel.onchange = () => {
+  Faces.use(facesSel.value);
   showFaces();
   if (last) render(last);
 };
