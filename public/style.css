@@ -399,4 +399,9 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 @keyframes j-t{0%,58%,73%,92%,100%{transform:rotate(calc(var(--s)*2deg))}66%{transform:rotate(calc(var(--s)*45deg))}78%,85%{transform:rotate(calc(var(--s)*38deg))}96%{transform:rotate(calc(var(--s)*28deg))}}
 @keyframes j-s{0%,58%,73%,92%,100%{transform:rotate(0)}66%{transform:rotate(calc(var(--s)*-75deg))}78%,85%{transform:rotate(calc(var(--s)*-65deg))}96%{transform:rotate(calc(var(--s)*-45deg))}}
 @keyframes j-a{0%,58%,100%{transform:rotate(calc(var(--s)*-8deg))}66%{transform:rotate(calc(var(--s)*-28deg))}73%,85%{transform:rotate(calc(var(--s)*62deg))}92%{transform:rotate(calc(var(--s)*20deg))}96%{transform:rotate(calc(var(--s)*-12deg))}}
+/* an optional tail (any style may give its body an element with class tail): it swishes, faster while working and lazily when napping */
+.paw .stick .tail{transform-box:fill-box;transform-origin:0 100%;animation:swish 3.2s ease-in-out infinite}
+[data-status=running] .paw .stick .tail{animation-duration:1.1s}
+:is([data-status=idle],[data-status=lost]) .paw .stick .tail{animation-duration:7s}
+@keyframes swish{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(9deg)}}
 @media (prefers-reduced-motion:reduce){.paw .stick *{animation:none!important;transition:none}}

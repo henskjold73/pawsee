@@ -18,6 +18,7 @@
 //                                       a leg is .thigh with a .shin inside it, an arm is .arm with a .fore inside it, each marked .side-l or .side-r and drawn from
 //                                       its joint at the local origin; set --d (how far a squat drops) and --j (how high a jump goes, px) on .stick.
 //   crown(head)                      -> the main agent's crown: a <g class="crown"> placed on the head, with an element of class gem inside it that twinkles
+//                                       A body may also carry a tail: any element with class tail inside .stick is swished by the page's CSS (optional).
 //   random(seed, {human})            -> a spec, the same seed always giving the same spec. human:true leaves out heads that are not people (paws)
 //   derive(main, seed)               -> a smaller relative of the main spec, for sub-agents
 //   editor(spec)                     -> what faces.html needs to show pickers: { slots: [{key, options, fixed}], swatches: [{key, label, colors}] }
