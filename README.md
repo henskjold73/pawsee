@@ -94,6 +94,10 @@ Its **sub-agents** are smaller relatives: same head and ears, a similar skin ton
 Sub-agents wear the hat that fits what they're doing: a pith helmet to explore, a sailor cap on the web, a hard hat to code, a beanie in the shell, a bowler for SQL, a party hat when asking you something, a chef's hat for work and a wizard hat to think.
 The stick body is half as tall as the head. `/faces.html` shows the whole parts kit.
 
+#### Hidden extras
+
+A few harmless surprises are tucked away in the page. They never touch real alerts. `?eggs=0` in the address turns them all off (it is remembered); `?eggs=1` turns them back on.
+
 #### Face styles
 
 The faces are packaged as **styles**: one file per style in `public/faces/`. The default is `cel` (thick ink line, flat colour, deadpan stare); `pixel` draws eight-bit heads, hats, crown and a blocky body on a grid. `robot` is tin heads with LED eyes and an antenna on a body of boxes and pipes. `monsters` is fuzzy, spiky creatures with fangs, horns and tentacle limbs. `cats` is round-headed cats with whiskers and a tail that swishes. `vampires` is pale, gaunt vampires with fangs and a flowing cape. A style owns the whole character, so swapping changes the body and crown too. `public/faces.js` is the registry the page talks to, and each style registers itself when its script loads.

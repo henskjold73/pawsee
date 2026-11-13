@@ -407,4 +407,11 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 [data-status=running] .paw .stick .tail{animation-duration:1.1s}
 :is([data-status=idle],[data-status=lost]) .paw .stick .tail{animation-duration:7s}
 @keyframes swish{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(9deg)}}
+/* a hidden party: every card's body jumps three times (the same jump a card does when it finishes) */
+body.party .card .paw :is(.upper,.lower){animation:j-body 1.26s ease-in-out 3 both}
+body.party .card .paw .thigh{animation:j-t 1.26s ease-in-out 3 both}
+body.party .card .paw .shin{animation:j-s 1.26s ease-in-out 3 both}
+body.party .card .paw .arm{animation:j-a 1.26s ease-in-out 3 both}
+.eggnote{margin-left:10px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;vertical-align:middle;color:var(--ink);background:color-mix(in srgb,var(--wait) 22%,var(--card));border:1px solid var(--wait);white-space:nowrap}
+.eggnote[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){.paw .stick *{animation:none!important;transition:none}}

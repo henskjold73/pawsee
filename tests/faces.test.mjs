@@ -87,3 +87,27 @@ test('a style that leaves out part of the contract is refused', () => {
   assert.throws(() => F.register({ name: 'Bad Name', label: 'x' }), /file name/);
   assert.ok(F.problems(null).length);
 });
+
+// a secret style is left out of the menu until it is unlocked (and stays in while it is the one in use)
+const loadMany = (...files) => runInThisContext(`(() => { ${readFileSync(new URL('../public/faces.js', import.meta.url), 'utf8').replace(/^const Faces/, 'var Faces')}\n${files.map(f => readFileSync(new URL(f, dir), 'utf8')).join('\n')}\nreturn Faces; })()`);
+
+test('a secret style stays out of styles() until it is unlocked', () => {
+  const F = loadMany('cel.js', 'ghosts.js');
+  assert.deepEqual(F.styles().map(s => s.name), ['cel']);
+  assert.deepEqual(F.styles({ all: true }).map(s => [s.name, s.locked]), [['cel', false], ['ghosts', true]]);
+  assert.equal(F.unlock('ghosts'), true);
+  assert.equal(F.unlock('ghosts'), false, 'a second unlock changes nothing');
+  assert.equal(F.unlock('no-such-style'), false);
+  assert.deepEqual(F.styles().map(s => s.name), ['cel', 'ghosts']);
+});
+
+test('a secret style is listed while it is in use, and use() can switch without saving', () => {
+  const F = loadMany('cel.js', 'ghosts.js');
+  const seen = [];
+  F.onUse(s => seen.push(s.name));
+  F.use('ghosts', { save: false });
+  assert.deepEqual(F.styles().map(s => s.name), ['cel', 'ghosts'], 'in use, so it is listed');
+  F.use('cel');
+  assert.deepEqual(F.styles().map(s => s.name), ['cel']);
+  assert.deepEqual(seen, ['ghosts', 'cel'], 'listeners hear about each switch');
+});

@@ -24,6 +24,7 @@
 //   editor(spec)                     -> what faces.html needs to show pickers: { slots: [{key, options, fixed}], swatches: [{key, label, colors}] }
 //   DEFAULT                          -> a complete spec
 // Faces.kin() is there so a style's derive() can be one call: see faces/pixel.js.
+// A style with `secret: true` is left out of styles() until Faces.unlock(name) has been called for it (or while it is the one in use).
 // A spec is plain JSON, owned by its style, so each style can have its own parts. Unknown parts are ignored, so a spec from one style can be handed to another.
 const Faces = (() => {
   const DEFAULT_STYLE = 'cel';
@@ -76,11 +77,28 @@ const Faces = (() => {
     try { const q = new URLSearchParams(location.search).get('faces'); if (q) { try { localStorage.setItem('pawsee.faces', q); } catch {} return q; } } catch {}
     try { return localStorage.getItem('pawsee.faces') || DEFAULT_STYLE; } catch { return DEFAULT_STYLE; }
   }
-  function use(name) {
+  // use(name) switches to a style and remembers the choice; use(name, { save: false }) switches for now only
+  const listeners = [];
+  function use(name, { save = true } = {}) {
     if (!styles.has(name)) throw new Error(`no face style "${name}" (have: ${[...styles.keys()].join(', ') || 'none'})`);
     current = styles.get(name);
-    try { localStorage.setItem('pawsee.faces', name); } catch {}
+    if (save) try { localStorage.setItem('pawsee.faces', name); } catch {}
+    for (const fn of listeners) try { fn(current); } catch {}
     return current;
+  }
+  // secret styles stay out of the list until they are unlocked (the unlocks are remembered)
+  const unlockedNames = () => { try { return JSON.parse(localStorage.getItem('pawsee.unlocked') || '[]'); } catch { return []; } };
+  const unlocked = new Set(unlockedNames());
+  function unlock(name) {
+    if (!styles.has(name) || unlocked.has(name)) return false;
+    unlocked.add(name);
+    try { localStorage.setItem('pawsee.unlocked', JSON.stringify([...unlocked])); } catch {}
+    return true;
+  }
+  // the styles to offer; { all: true } also gives the ones still locked, marked locked: true
+  function list({ all = false } = {}) {
+    return [...styles.values()].map(s => ({ name: s.name, label: s.label, description: s.description || '', secret: !!s.secret, locked: !!s.secret && !unlocked.has(s.name) && s !== current }))
+      .filter(s => all || !s.locked);
   }
   const active = () => {
     if (!current) throw new Error('no face style loaded: include faces/<name>.js after faces.js');
@@ -89,7 +107,7 @@ const Faces = (() => {
 
   const api = {
     register, use, problems, rng, hash, kin, MOOD_CLASSES, BODY_CLASSES, HAT_NAMES, PIECES, DEFAULT_STYLE,
-    styles: () => [...styles.values()].map(s => ({ name: s.name, label: s.label, description: s.description || '' })),
+    styles: list, unlock, onUse: (fn) => { listeners.push(fn); },
     get style() { return active(); },
     get DEFAULT() { return active().DEFAULT; },
   };
