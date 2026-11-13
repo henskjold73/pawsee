@@ -164,6 +164,9 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 [data-main] .paw .crown{display:inline}
 .crown .gem{transform-box:fill-box;transform-origin:center;animation:twinkle 4s ease-in-out infinite}
 
+/* the badge / thought bubble sits in the top right, out of the head's way. A sub-agent's card has its parent's portrait in that corner (see .parentface),
+   so there it moves down to sit just under the frame and a little smaller */
+.card:not([data-main]) .paw .pbadge{transform:translate(106px,36px) scale(1.1)}
 /* thinking about a skill / connector: the badge becomes a thought bubble holding its logo */
 .paw .thought,.paw .brandicon{display:none}
 [data-brand] .pbadge .base,[data-brand] .pbadge .prop{display:none!important}
