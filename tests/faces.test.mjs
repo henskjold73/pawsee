@@ -22,6 +22,7 @@ for (const file of files) {
     const F = load(file), s = F.style, name = file.replace(/\.js$/, '');
     assert.equal(s.name, name, 'the style is named after its file');
     assert.deepEqual(F.problems(s), []);
+    assert.ok(typeof s.emoji === 'string' && s.emoji.length > 0, 'a shipped style has an emoji for the menu');
 
     const svg = F.compose(F.DEFAULT, { size: 80 });
     assert.match(svg, /^<svg[\s>]/);
@@ -110,4 +111,17 @@ test('a secret style is listed while it is in use, and use() can switch without 
   F.use('cel');
   assert.deepEqual(F.styles().map(s => s.name), ['cel']);
   assert.deepEqual(seen, ['ghosts', 'cel'], 'listeners hear about each switch');
+});
+
+test('every shipped style has its own emoji', () => {
+  const seen = files.map(f => load(f).style.emoji);
+  assert.equal(new Set(seen).size, seen.length, `emojis are all different: ${seen.join(' ')}`);
+  assert.equal(load('cel.js').styles()[0].emoji, '🗿');
+  assert.equal(loadMany('cel.js').styles()[0].emoji, '🗿');
+});
+
+test('a style without an emoji gets the default one in the menu', () => {
+  const F = load('cel.js');
+  F.register({ ...F.style, name: 'plain', label: 'Plain', emoji: undefined });
+  assert.equal(F.styles().find(s => s.name === 'plain').emoji, '🙂');
 });

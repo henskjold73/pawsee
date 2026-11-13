@@ -4,7 +4,7 @@
 // Pick one with ?faces=<name> (remembered in localStorage), or Faces.use('<name>'). The default is DEFAULT_STYLE.
 //
 // What a style provides. Every drawing is an SVG fragment on a 100x100 head canvas (head centre about 50,52):
-//   name, label                      id (file name) and a human title
+//   name, label, emoji               id (file name), a human title, and one emoji that stands for the style in the menu (optional; 🙂 when left out)
 //   compose(spec, {size,title})      -> a standalone <svg> string for one head (cards' portraits, pickers)
 //   pieces(spec)                     -> the layers of one head for the animated card: { style, ears, head, extra, hair, eyes, brows, nose, mouth, hat, scale }
 //                                       (style is a CSS custom-property string such as "--skin:#fff"; scale is how big a relative is drawn)
@@ -97,7 +97,7 @@ const Faces = (() => {
   }
   // the styles to offer; { all: true } also gives the ones still locked, marked locked: true
   function list({ all = false } = {}) {
-    return [...styles.values()].map(s => ({ name: s.name, label: s.label, description: s.description || '', secret: !!s.secret, locked: !!s.secret && !unlocked.has(s.name) && s !== current }))
+    return [...styles.values()].map(s => ({ name: s.name, label: s.label, description: s.description || '', emoji: s.emoji || '🙂', secret: !!s.secret, locked: !!s.secret && !unlocked.has(s.name) && s !== current }))
       .filter(s => all || !s.locked);
   }
   const active = () => {

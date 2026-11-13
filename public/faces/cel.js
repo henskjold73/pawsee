@@ -234,5 +234,5 @@ Faces.register((() => {
     };
   }
 
-  return { name: 'cel', label: 'Cel', description: 'Thick ink line, flat colour and a deadpan stare.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  return { name: 'cel', label: 'Cel', emoji: '🗿', description: 'Thick ink line, flat colour and a deadpan stare.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
 })());

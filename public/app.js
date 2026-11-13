@@ -284,7 +284,7 @@ const facesSel = document.getElementById('fcs');
 function showFaces() {
   const all = Faces.styles(), now = Faces.style;
   facesSel.hidden = all.length < 2;
-  facesSel.replaceChildren(...all.map(x => Object.assign(new Option('🙂 ' + x.label, x.name, false, x.name === now.name), { title: x.description })));
+  facesSel.replaceChildren(...all.map(x => Object.assign(new Option(x.emoji + ' ' + x.label, x.name, false, x.name === now.name), { title: x.description })));
   facesSel.title = `Face style: ${now.label}${now.description ? ' (' + now.description + ')' : ''}`;
 }
 facesSel.onchange = () => {
