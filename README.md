@@ -94,6 +94,14 @@ Its **sub-agents** are smaller relatives: same head and ears, a similar skin ton
 Sub-agents wear the hat that fits what they're doing: a pith helmet to explore, a sailor cap on the web, a hard hat to code, a beanie in the shell, a bowler for SQL, a party hat when asking you something, a chef's hat for work and a wizard hat to think.
 The stick body is half as tall as the head. `/faces.html` shows the whole parts kit.
 
+#### Face styles
+
+The faces are packaged as **styles**: one file per style in `public/faces/`. The default is `cel` (thick ink line, flat colour, deadpan stare); `pixel` draws eight-bit heads, hats, crown and a blocky body on a grid. `robot` is tin heads with LED eyes and an antenna on a body of boxes and pipes. `monsters` is fuzzy, spiky creatures with fangs, horns and tentacle limbs. `cats` is round-headed cats with whiskers and a tail that swishes. `vampires` is pale, gaunt vampires with fangs and a flowing cape. A style owns the whole character, so swapping changes the body and crown too. `public/faces.js` is the registry the page talks to, and each style registers itself when its script loads.
+To swap, pick a style from the **🙂 menu** in the header (it appears when more than one style is loaded); the cards redraw at once and the choice is remembered. `?faces=<name>` in the URL does the same, and `/faces.html` has a picker too.
+
+To make a new style, copy `public/faces/cel.js` to `public/faces/<name>.js`, change `name`, and redraw the parts. The contract (what a style has to provide: the head and its parts, the mood faces, the hats, the **body** and the **crown**, plus `random`, `derive` and `editor`) is described at the top of `public/faces.js`. Then add a `<script src="faces/<name>.js">` line to `index.html` and `faces.html`, and an entry to the asset list in `scripts/build-binary.mjs`.
+`npm test` loads every file in `public/faces/` and checks it against the contract, so you find out straight away if a piece is missing.
+
 Agents have moods too: sleepy-eyed just after napping off and deeply asleep (slow breathing, extra z's) after two minutes, worried (sweat drops) when an attempt fails, and dizzy (spiral eyes, circling stars) after lots of failed attempts in a row.
 When an agent that was running finishes, it does a happy jump with confetti; when it fails, it flops over.
 Sounds are off by default: click the "Sound off" button next to the version to switch on a soft chime when something needs you and another when the last working agent finishes (made in the browser, no audio files). They are off again every time you refresh the page.

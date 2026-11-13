@@ -45,7 +45,8 @@ const LABEL = { waiting: 'needs you', running: 'working', idle: 'napping', done:
 const faceCache = new Map();
 // the face changes with every new task in the session, so the same session doesn't wear one face forever
 const taskOf = new Map();
-function mainFace(session) { const k = session + '#' + (taskOf.get(session) || 0); if (!faceCache.has(k)) faceCache.set(k, Faces.random(Faces.hash('main:' + k), { human: true })); return faceCache.get(k); }
+// a spec belongs to its face style, so the cache is per style
+function mainFace(session) { const task = session + '#' + (taskOf.get(session) || 0), k = Faces.style.name + ':' + task; if (!faceCache.has(k)) faceCache.set(k, Faces.random(Faces.hash('main:' + task), { human: true })); return faceCache.get(k); }
 // a sub-agent card carries a small portrait of its parent (the session's main agent), framed in the main agent's colour
 function parentChip(session, isMain) {
   if (isMain) return '';
@@ -53,27 +54,10 @@ function parentChip(session, isMain) {
 }
 // sub-agents wear the hat that fits what they are doing (the main agent keeps its crown)
 const HAT_OF = { explore: 'pith', web: 'sailor', code: 'hard', shell: 'beanie', sql: 'bowler', ask: 'party', work: 'chef', think: 'wizard' };
-// a stick body hangs from the chin: half as tall as the head (head heights come from the head outlines in faces.js).
-// It is jointed (thigh+shin, arm+forearm) so CSS can walk, run, squat and jump it. `lower` is the legs, `upper` is torso+arms and
-// stays open: agentSvg puts the head inside it (so the head rides with the torso) and closes it.
-const HEAD_Y = { egg: [9, 91], round: [14, 92], square: [11, 93], pear: [11, 93], long: [5, 95], paw: [44, 88], claw: [44, 88] };
-function stickBody(head) {
-  const [top, bot] = HEAD_Y[head] || HEAD_Y.egg, B = (bot - top) / 2;            // body height = 50% of head height
-  const neck = bot - 3, hip = bot + B * .4, shoulder = bot + B * .2, foot = bot + B;
-  const lx = B * .22, ly = foot - hip, ax = B * .5, ay = B * .28;
-  const f = n => +n.toFixed(2);
-  // a two-bone limb drawn from (0,0) at its joint; `x`,`y` is the whole limb's vector. Left limbs get class side-l (--s:1), right ones side-r (--s:-1).
-  const limb = (cls, bone, sub, side, x, y) => `<g class="${bone} side-${side}"><path d="M0 0l${f(x / 2)} ${f(y / 2)}"/><g transform="translate(${f(x / 2)} ${f(y / 2)})"><g class="${sub}"><path d="M0 0l${f(x / 2)} ${f(y / 2)}"/></g></g></g>`;
-  const at = (x, y, inner) => `<g transform="translate(${x} ${f(y)})">${inner}</g>`;
-  return { open: `<g class="stick" style="--d:${f(ly * .24)}px;--j:${f(B * .8)}px" stroke="#2b1b12" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" fill="none">`
-      + `<g class="lower">${at(50, hip, limb('', 'thigh', 'shin', 'l', -lx, ly) + limb('', 'thigh', 'shin', 'r', lx, ly))}</g>`
-      + `<g class="upper"><path class="torso" d="M50 ${f(neck)}V${f(hip)}"/>${at(50, shoulder, limb('', 'arm', 'fore', 'l', -ax, ay) + limb('', 'arm', 'fore', 'r', ax, ay))}`,
-    close: '</g></g>' };
-}
 function agentSvg(source, session = '', id = 'main', isMain = true) {
   const spec = isMain ? mainFace(session) : Faces.derive(mainFace(session), Faces.hash(session + id));
-  const body = stickBody(spec.head), f = Faces.pieces(spec), k = isMain ? 1 : +(0.7 + (f.scale - 0.55)).toFixed(2); // relatives are drawn smaller, anchored at the chin
-  const ink = '#2b1b12', st = `stroke="${ink}" stroke-linecap="round" stroke-linejoin="round" fill="none"`;
+  const body = Faces.body(spec.head), f = Faces.pieces(spec), k = isMain ? 1 : +(0.7 + (f.scale - 0.55)).toFixed(2); // relatives are drawn smaller, anchored at the chin
+  const ink = '#2b1b12';
   return `<svg class="paw" viewBox="-23 -22 162 162" aria-hidden="true">
     <g class="bodyg">
     <circle class="fx-halo" cx="50" cy="58" r="50" fill="none" stroke="var(--paw)" stroke-width="3"/>
@@ -84,32 +68,16 @@ function agentSvg(source, session = '', id = 'main', isMain = true) {
       ${body.open}${f.ears}${f.head}${f.extra}${f.hair}
       <g class="face">
       <g class="eye-open">${f.eyes}</g>
-      <g class="eye-closed" ${st} stroke-width="3"><path d="M30 48q7 5 14 0M56 48q7 5 14 0"/></g>
-      <g class="eye-happy" ${st} stroke-width="3"><path d="M30 51q7-8 14 0M56 51q7-8 14 0"/></g>
-      <g class="eye-sleepy" ${st} stroke-width="3"><path d="M30 48h14M56 48h14"/><path d="M31 48a6 6 0 0 0 12 0M57 48a6 6 0 0 0 12 0" fill="${ink}" stroke-width="1.6"/></g>
-      <g class="eye-x" ${st} stroke-width="3"><path d="M32 43l10 10M42 43l-10 10M58 43l10 10M68 43l-10 10"/></g>
-      <g class="dizzy-eyes" ${st} stroke-width="2"><circle cx="37" cy="48" r="7.5" fill="#fff"/><circle cx="63" cy="48" r="7.5" fill="#fff"/>
-        <path d="M41 66m0-.1a1 1 0 1 1 1.6 1.4a2.6 2.6 0 1 1-3.8-3 4 4 0 1 1 5.4 5.2" transform="translate(-4 -18)"/><path d="M59 66m0-.1a1 1 0 1 1 1.6 1.4a2.6 2.6 0 1 1-3.8-3 4 4 0 1 1 5.4 5.2" transform="translate(4 -18)"/></g>
-      <g class="worry-eyes"><circle cx="37" cy="48" r="7.5" fill="#fff" stroke="${ink}" stroke-width="2.6"/><circle cx="63" cy="48" r="7.5" fill="#fff" stroke="${ink}" stroke-width="2.6"/>
-        <circle class="pupil" cx="38" cy="46" r="2.6" fill="${ink}"/><circle class="pupil" cx="62" cy="46" r="2.6" fill="${ink}"/></g>
-      <path class="worry-brows" d="M27 40L45 33M73 40L55 33" ${st} stroke-width="3"/>
-      <path class="brows" d="M28 35L46 41M72 35L54 41" ${st} stroke-width="3.4"/>
-      <ellipse class="yawn" cx="50" cy="80" rx="4.5" ry="5.5" fill="${ink}"/>
-      <path class="worry-mouth" d="M40 82q5-4 10 0t10 0" ${st} stroke-width="3"/>
+      ${Faces.mood(ink)}
       <g class="hbrows">${f.brows}</g>${f.nose}<g class="mouth">${f.mouth}</g>
       </g>${Object.keys(HAT_OF).map(k => `<g class="hat h-${k}">${Faces.hatFor(HAT_OF[k], spec.head)}</g>`).join('')}
-    <g class="crown" transform="translate(50 6) rotate(-5)">
-      <path d="M-15 8L-17 -8L-8 -1L0 -12L8 -1L17 -8L15 8Z" fill="#f6c945" stroke="#c9961a" stroke-width="2" stroke-linejoin="round"/>
-      <rect x="-15" y="5" width="30" height="5.5" rx="2" fill="#e8b32c" stroke="#c9961a" stroke-width="1.6"/>
-      <circle cx="-17" cy="-8" r="2.3" fill="#fff3b0" stroke="#c9961a" stroke-width="1.3"/><circle cx="0" cy="-12" r="2.3" fill="#fff3b0" stroke="#c9961a" stroke-width="1.3"/><circle cx="17" cy="-8" r="2.3" fill="#fff3b0" stroke="#c9961a" stroke-width="1.3"/>
-      <circle class="gem" cx="0" cy="7.8" r="2" fill="var(--bean)"/>
-    </g>
+    ${Faces.crown(spec.head)}
     ${body.close}</g></g></g>
     <g fill="#f6c945">
       <path class="fx-spark spark1" transform="translate(112 54)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/><path class="fx-spark spark2" transform="translate(-1 48)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/>
       <path class="fx-spark spark3" transform="translate(22 -8)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/><path class="fx-spark spark4" transform="translate(106 90)" d="M0 -5.5L1.5 -1.5L5.5 0L1.5 1.5L0 5.5L-1.5 1.5L-5.5 0L-1.5 -1.5Z"/></g>
     </g>
-    <g class="pbadge" transform="translate(82 4) scale(1.3)"><g class="bob">
+    <g class="pbadge" transform="translate(104 4) scale(1.3)"><g class="bob">
       <circle class="base" r="19" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
       <g class="thought">
         <g fill="var(--card)" stroke="var(--line)" stroke-width="4"><circle cx="-10" cy="-6" r="10"/><circle cx="8" cy="-8" r="11"/><circle cx="15" cy="4" r="9"/><circle cx="-1" cy="11" r="11"/><circle cx="-14" cy="6" r="8"/><circle cx="1" cy="0" r="11"/></g><g fill="var(--card)"><circle cx="-10" cy="-6" r="10"/><circle cx="8" cy="-8" r="11"/><circle cx="15" cy="4" r="9"/><circle cx="-1" cy="11" r="11"/><circle cx="-14" cy="6" r="8"/><circle cx="1" cy="0" r="11"/></g>
@@ -311,6 +279,21 @@ document.getElementById('snd').onclick = () => {
 };
 showSound();
 
+// swap the face style: a menu of the styles that are loaded (hidden while there is only one). The choice is remembered.
+const facesSel = document.getElementById('fcs');
+function showFaces() {
+  const all = Faces.styles(), now = Faces.style;
+  facesSel.hidden = all.length < 2;
+  facesSel.replaceChildren(...all.map(x => Object.assign(new Option('🙂 ' + x.label, x.name, false, x.name === now.name), { title: x.description })));
+  facesSel.title = `Face style: ${now.label}${now.description ? ' (' + now.description + ')' : ''}`;
+}
+facesSel.onchange = () => {
+  Faces.use(facesSel.value);
+  showFaces();
+  if (last) render(last);
+};
+showFaces();
+
 // desktop notifications: opt in with the Notify pill (the click is also what lets the browser ask for permission). They only show while
 // the tab is hidden or unfocused, since the page itself already shows what's happening. The choice is remembered.
 let notifyOn = false;
@@ -446,7 +429,7 @@ function render(snap) {
     el.dataset.source = a.source || 'copilot';
     if (el._tool !== (a.source || 'copilot')) { el._tool = a.source || 'copilot'; el.querySelector('.toolwrap')?.remove(); el.insertAdjacentHTML('afterbegin', toolSvg(el._tool)); }
     el.toggleAttribute('data-main', a.type === 'main agent'); // the one in charge wears a crown
-    const faceKey = a.session + '#' + (taskOf.get(a.session) || 0);
+    const faceKey = Faces.style.name + ':' + a.session + '#' + (taskOf.get(a.session) || 0); // a new task, or a new face style, puts on a new face
     if (el._face !== faceKey) { // a new task began: put on a new face (and, for sub-agents, the new parent portrait)
       if (el._face) {
         const isMain = a.type === 'main agent';

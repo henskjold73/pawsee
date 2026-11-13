@@ -42,19 +42,27 @@
   <pre id="json"></pre>
 </div>
 <script src="faces.js"></script>
+<script src="faces/cel.js"></script>
+<script src="faces/pixel.js"></script>
+<script src="faces/robot.js"></script>
+<script src="faces/monsters.js"></script>
+<script src="faces/cats.js"></script>
+<script src="faces/vampires.js"></script>
 <script>
 let spec = { ...Faces.DEFAULT }, seed = 1;
+// a picker for the face styles that are loaded; a style is chosen with ?faces=<name> (and remembered)
+if (Faces.styles().length > 1) { const sel = document.createElement('select'); sel.setAttribute('aria-label', 'face style'); for (const x of Faces.styles()) sel.add(new Option(x.label, x.name, false, x.name === Faces.style.name)); sel.onchange = () => { Faces.use(sel.value); spec = { ...Faces.DEFAULT }; draw(); }; document.querySelector('header').appendChild(sel); }
 const $ = id => document.getElementById(id);
 function draw() {
+  const ed = Faces.editor(spec);
   $('big').innerHTML = Faces.compose(spec, { size: 220 });
   $('cats').innerHTML = '';
-  for (const k of [...Faces.ORDER, 'hat']) {
+  for (const { key: k, options, fixed } of ed.slots) {
     const c = document.createElement('div'); c.className = 'cat';
-    const off = Faces.PAWLIKE.has(spec.head) && k !== 'head';
-    if (off) { c.style.opacity = .4; c.style.pointerEvents = 'none'; }
-    c.innerHTML = `<h3>${k}${off ? ' · fixed on paws' : ''}</h3><div class="opts"></div>`;
+    if (fixed) { c.style.opacity = .4; c.style.pointerEvents = 'none'; }
+    c.innerHTML = `<h3>${k}${fixed ? ' · fixed on paws' : ''}</h3><div class="opts"></div>`;
     const row = c.querySelector('.opts');
-    for (const n of Faces.names(k)) {
+    for (const n of options) {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'opt'; b.setAttribute('aria-pressed', spec[k] === n);
       b.innerHTML = Faces.compose({ ...spec, [k]: n }, { size: 64, title: n }) + `<div>${n}</div>`;
       b.onclick = () => { spec[k] = n; draw(); };
@@ -62,13 +70,11 @@ function draw() {
     }
     $('cats').appendChild(c);
   }
-  const paw = Faces.PAWLIKE.has(spec.head);
-  const skins = document.createElement('div'); skins.className = 'cat';
-  skins.innerHTML = paw ? '<h3>paw colour</h3><div class="opts" id="sk"></div>' : '<h3>skin</h3><div class="opts" id="sk"></div><h3 style="margin-top:10px">hair colour</h3><div class="opts" id="hc"></div>';
-  $('cats').appendChild(skins);
-  const swatch = (host, table, key, idx) => { for (const [n, v] of Object.entries(table)) { const b = document.createElement('button'); b.className = 'opt'; b.setAttribute('aria-pressed', spec[key] === n); b.innerHTML = `<div class="sw" style="background:${idx === null ? v : v[0]}"></div>`; b.title = n; b.onclick = () => { spec[key] = n; draw(); }; $(host).appendChild(b); } };
-  if (paw) swatch('sk', Faces.PAWCOLOR, 'pawColor', 0);
-  else { swatch('sk', Faces.SKIN, 'skin', 0); swatch('hc', Faces.HAIR, 'hairColor', null); }
+  for (const { key, label, colors } of ed.swatches) {
+    const c = document.createElement('div'); c.className = 'cat'; c.innerHTML = `<h3>${label}</h3><div class="opts"></div>`;
+    for (const [n, css] of Object.entries(colors)) { const b = document.createElement('button'); b.className = 'opt'; b.setAttribute('aria-pressed', spec[key] === n); b.innerHTML = `<div class="sw" style="background:${css}"></div>`; b.title = n; b.onclick = () => { spec[key] = n; draw(); }; c.querySelector('.opts').appendChild(b); }
+    $('cats').appendChild(c);
+  }
   family();
 }
 function family() {
