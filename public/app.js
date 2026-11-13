@@ -422,6 +422,8 @@ function render(snap) {
     if (reaction && !reduceMotion.matches) react(el, reaction);
     if (reaction && document.hidden) finishedAway = true;
     if (reaction === 'cheer') cheered++;
+    // an agent we saw working has just finished: it jumps (CSS plays it three times from now); one that was already done when we first saw it just stands there
+    if (a.status === 'done') { if (el._status && el._status !== 'done') el.dataset.hop = '1'; } else delete el.dataset.hop;
     el._status = a.status;
     el.dataset.status = a.status;
     const mood = PawMood.moodOf(a, now);
