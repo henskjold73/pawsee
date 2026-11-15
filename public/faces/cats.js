@@ -198,5 +198,5 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'fur', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'eyes and accents', colors: colors(ACCENT, null) }],
   });
 
-  return { name: 'cats', label: 'Cats', description: 'Round-headed cats with pointed ears, whiskers and a tail that swishes.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  return { name: 'cats', label: 'Cats', emoji: '🐱', description: 'Round-headed cats with pointed ears, whiskers and a tail that swishes.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
 })());

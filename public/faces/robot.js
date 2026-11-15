@@ -198,5 +198,5 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'metal', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'lights', colors: colors(ACCENT, null) }],
   });
 
-  return { name: 'robot', label: 'Robot', description: 'Tin heads with LED eyes, a speaker grille and an antenna, on a body of boxes and pipes.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  return { name: 'robot', label: 'Robot', emoji: '🤖', description: 'Tin heads with LED eyes, a speaker grille and an antenna, on a body of boxes and pipes.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
 })());

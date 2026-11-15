@@ -206,5 +206,5 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'skin', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'hair colour', colors: colors(HAIR, null) }],
   });
 
-  return { name: 'pixel', label: 'Pixel', description: 'Eight-bit heads on a grid, every part a few rows of pixels.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  return { name: 'pixel', label: 'Pixel', emoji: '👾', description: 'Eight-bit heads on a grid, every part a few rows of pixels.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
 })());

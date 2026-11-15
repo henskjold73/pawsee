@@ -22,6 +22,7 @@ for (const file of files) {
     const F = load(file), s = F.style, name = file.replace(/\.js$/, '');
     assert.equal(s.name, name, 'the style is named after its file');
     assert.deepEqual(F.problems(s), []);
+    assert.ok(typeof s.emoji === 'string' && s.emoji.length > 0, 'a shipped style has an emoji for the menu');
 
     const svg = F.compose(F.DEFAULT, { size: 80 });
     assert.match(svg, /^<svg[\s>]/);
@@ -86,4 +87,41 @@ test('a style that leaves out part of the contract is refused', () => {
   assert.throws(() => F.register({ name: 'half', label: 'Half', compose() {} }), /must be a function/);
   assert.throws(() => F.register({ name: 'Bad Name', label: 'x' }), /file name/);
   assert.ok(F.problems(null).length);
+});
+
+// a secret style is left out of the menu until it is unlocked (and stays in while it is the one in use)
+const loadMany = (...files) => runInThisContext(`(() => { ${readFileSync(new URL('../public/faces.js', import.meta.url), 'utf8').replace(/^const Faces/, 'var Faces')}\n${files.map(f => readFileSync(new URL(f, dir), 'utf8')).join('\n')}\nreturn Faces; })()`);
+
+test('a secret style stays out of styles() until it is unlocked', () => {
+  const F = loadMany('cel.js', 'ghosts.js');
+  assert.deepEqual(F.styles().map(s => s.name), ['cel']);
+  assert.deepEqual(F.styles({ all: true }).map(s => [s.name, s.locked]), [['cel', false], ['ghosts', true]]);
+  assert.equal(F.unlock('ghosts'), true);
+  assert.equal(F.unlock('ghosts'), false, 'a second unlock changes nothing');
+  assert.equal(F.unlock('no-such-style'), false);
+  assert.deepEqual(F.styles().map(s => s.name), ['cel', 'ghosts']);
+});
+
+test('a secret style is listed while it is in use, and use() can switch without saving', () => {
+  const F = loadMany('cel.js', 'ghosts.js');
+  const seen = [];
+  F.onUse(s => seen.push(s.name));
+  F.use('ghosts', { save: false });
+  assert.deepEqual(F.styles().map(s => s.name), ['cel', 'ghosts'], 'in use, so it is listed');
+  F.use('cel');
+  assert.deepEqual(F.styles().map(s => s.name), ['cel']);
+  assert.deepEqual(seen, ['ghosts', 'cel'], 'listeners hear about each switch');
+});
+
+test('every shipped style has its own emoji', () => {
+  const seen = files.map(f => load(f).style.emoji);
+  assert.equal(new Set(seen).size, seen.length, `emojis are all different: ${seen.join(' ')}`);
+  assert.equal(load('cel.js').styles()[0].emoji, '🗿');
+  assert.equal(loadMany('cel.js').styles()[0].emoji, '🗿');
+});
+
+test('a style without an emoji gets the default one in the menu', () => {
+  const F = load('cel.js');
+  F.register({ ...F.style, name: 'plain', label: 'Plain', emoji: undefined });
+  assert.equal(F.styles().find(s => s.name === 'plain').emoji, '🙂');
 });

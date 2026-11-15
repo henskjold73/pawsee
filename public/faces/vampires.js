@@ -194,5 +194,5 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'pallor', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'hair', colors: colors(HAIR, null) }],
   });
 
-  return { name: 'vampires', label: 'Vampires', description: 'Pale, gaunt vampires with red eyes, fangs and a flowing cape.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  return { name: 'vampires', label: 'Vampires', emoji: '🧛', description: 'Pale, gaunt vampires with red eyes, fangs and a flowing cape.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
 })());

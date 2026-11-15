@@ -284,7 +284,7 @@ const facesSel = document.getElementById('fcs');
 function showFaces() {
   const all = Faces.styles(), now = Faces.style;
   facesSel.hidden = all.length < 2;
-  facesSel.replaceChildren(...all.map(x => Object.assign(new Option('🙂 ' + x.label, x.name, false, x.name === now.name), { title: x.description })));
+  facesSel.replaceChildren(...all.map(x => Object.assign(new Option(x.emoji + ' ' + x.label, x.name, false, x.name === now.name), { title: x.description })));
   facesSel.title = `Face style: ${now.label}${now.description ? ' (' + now.description + ')' : ''}`;
 }
 facesSel.onchange = () => {
@@ -422,6 +422,8 @@ function render(snap) {
     if (reaction && !reduceMotion.matches) react(el, reaction);
     if (reaction && document.hidden) finishedAway = true;
     if (reaction === 'cheer') cheered++;
+    // an agent we saw working has just finished: it jumps (CSS plays it three times from now); one that was already done when we first saw it just stands there
+    if (a.status === 'done') { if (el._status && el._status !== 'done') el.dataset.hop = '1'; } else delete el.dataset.hop;
     el._status = a.status;
     el.dataset.status = a.status;
     const mood = PawMood.moodOf(a, now);
