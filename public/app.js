@@ -506,4 +506,4 @@ function render(snap) {
 
 let last;
 const es = new EventSource('/events');
-es.onmessage = e => { last = JSON.parse(e.data); render(last); };
+es.onmessage = e => { last = JSON.parse(e.data); render(last); if (typeof PawEggs !== 'undefined' && PawEggs.onSnapshot) PawEggs.onSnapshot(last); };

@@ -70,6 +70,10 @@ const PUBLIC = join(fileURLToPath(new URL('.', import.meta.url)), 'public');
 
 /** sessionId -> { offset, partial, meta, agents: Map<agentId, Agent>, calls: Map<toolCallId, agentId> } */
 const sessions = new Map();
+// a hidden surprise: when the person's own prompt says "show me everything", the page puts on a parade. Only a count leaves the server, never the prompt.
+// Prompts older than a few minutes (log history read at start-up) do not count, so that old prompts do not set it off.
+let paradeCount = 0;
+const PARADE_PHRASE = /show\s+me\s+everything/i, PARADE_WINDOW_MS = 5 * 60e3;
 
 const clip = (s, n = 140, keepLines = false) => {
   s = String(s ?? '');
@@ -310,6 +314,7 @@ function handle(s, ev) {
     case 'user.message':
       if (!ev.agentId) { // the user's own prompt starts a new task, so old questions are moot
         s.lastUserAt = ts; s.pending.clear(); s.task = (s.task || 0) + 1; // each new task gets a new face
+        if (PARADE_PHRASE.test(String(d.content || '')) && Date.now() - ts < PARADE_WINDOW_MS) paradeCount++;
         recordPrompt(s, ts, d.content);
         const title = titleFromPrompt(d.content); // null for "yes", "now?" and the like: keep the previous title
         if (title) { s.promptTitle = title; s.promptFull = clip(d.content, 1500, true); }
@@ -729,7 +734,7 @@ function snapshot() {
   const rank = { waiting: 0, running: 1, idle: 2, failed: 3, done: 4, lost: 5 };
   // grouped by state, then in the order agents started, so cards only move when an agent changes state
   agents.sort((x, y) => rank[x.status] - rank[y.status] || x.startedAt - y.startedAt || (x.id < y.id ? -1 : 1));
-  return { now, boot: BOOT, agents, update, problems: problemsOf(sessions.values()), logos: Object.fromEntries([...customLogos].map(([k, l]) => [k, `/logos/${encodeURIComponent(l.file)}?v=${l.v}`])), version: pkg.version, fadeMs: FADE_MS, tokens: [...sessions.values()].reduce((n, x) => n + (x.tokens || 0), 0), aic: Object.values(usage).reduce((x, y) => x + y, 0), aicSessions: Object.keys(usage).length };
+  return { now, boot: BOOT, parade: paradeCount, agents, update, problems: problemsOf(sessions.values()), logos: Object.fromEntries([...customLogos].map(([k, l]) => [k, `/logos/${encodeURIComponent(l.file)}?v=${l.v}`])), version: pkg.version, fadeMs: FADE_MS, tokens: [...sessions.values()].reduce((n, x) => n + (x.tokens || 0), 0), aic: Object.values(usage).reduce((x, y) => x + y, 0), aicSessions: Object.keys(usage).length };
 }
 
 const BOOT = randomUUID(); // changes with every start, so an open page can tell the server was restarted

@@ -97,6 +97,14 @@ if (typeof module !== 'undefined') module.exports = PawEggs;
   function stopParade() { document.getElementById('parade')?.remove(); }
   if (new URLSearchParams(location.search).has('parade')) setTimeout(parade, 900);
 
+  // 5. A prompt that says "show me everything" starts the parade too. The server only counts such prompts; the page starts one when the count goes up (the first count it sees is the baseline).
+  let paradeSeen = null;
+  PawEggs.onSnapshot = (snap) => {
+    if (typeof snap.parade !== 'number') return;
+    if (paradeSeen !== null && snap.parade > paradeSeen) parade();
+    paradeSeen = snap.parade;
+  };
+
   // 4. Try every style and a secret one turns up in the menu. What has been tried is remembered, and it counts when a style is chosen from the menu or from the address.
   const SEEN = 'pawsee-seen-faces';
   const seenNow = () => { try { return JSON.parse(store.get(SEEN) || '[]'); } catch { return []; } };
