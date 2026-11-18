@@ -5,7 +5,7 @@ import { runInThisContext } from 'node:vm';
 
 // eggs.js is a classic browser script, so run it as one (outside a browser it only defines the logic, and does not touch a page)
 const src = (f) => readFileSync(new URL(`../public/${f}`, import.meta.url), 'utf8');
-const { KONAMI, isFriday13, konami, hasSeenAll, today } = runInThisContext(src('eggs.js') + ';PawEggs');
+const { KONAMI, isFriday13, sequence, konami, typed, hasSeenAll, today } = runInThisContext(src('eggs.js') + ';PawEggs');
 
 test('Friday the 13th is only a Friday that is the 13th', () => {
   assert.equal(isFriday13(new Date(2026, 10, 13)), true);     // 13 November 2026
@@ -54,4 +54,25 @@ test('a style is unlocked once every other style has been seen', () => {
 test('the page wiring does nothing without a page', () => {
   // already shown by loading the file above: no document, so no error and nothing registered
   assert.equal(typeof konami, 'function');
+});
+
+test('a typed word is picked up letter by letter, in either case, with other letters around it', () => {
+  const run = (feed, text) => [...text].map(feed).includes(true);
+  assert.equal(run(typed('parade'), 'parade'), true);
+  assert.equal(run(typed('parade'), 'PaRaDe'), true);
+  assert.equal(run(typed('parade'), 'a big parade today'), true, 'inside other typing');
+  assert.equal(run(typed('parade'), 'parad'), false);
+  assert.equal(run(typed('parade'), 'paraed'), false);
+  assert.equal(run(typed('parade'), 'pparade'), true, 'a doubled first letter does not hide it');
+  const again = typed('parade');
+  assert.equal(run(again, 'parade'), true);
+  assert.equal(run(again, 'parade'), true, 'and again, once it has fired');
+});
+
+test('sequence is the one matcher behind both the code and the word', () => {
+  const feed = sequence(['x', 'y']);
+  assert.equal(feed('x'), false);
+  assert.equal(feed('y'), true);
+  assert.equal(feed('y'), false, 'the match is used up');
+  assert.equal(konami()('b'), false);
 });

@@ -5,16 +5,18 @@ const PawEggs = (() => {
 
   const isFriday13 = (d) => d.getDay() === 5 && d.getDate() === 13;
 
-  // feed it key names one at a time; it says true on the key that completes the code. It looks at the last few keys, so an extra key before the code (or an extra arrow that is part of it) is fine.
-  function konami(code = KONAMI) {
+  // feed it key names one at a time; it says true on the key that completes the sequence. It looks at the last few keys, so an extra key before the sequence (or an extra arrow that is part of it) is fine.
+  function sequence(keys) {
     let recent = [];
     return (key) => {
       recent.push(key.length === 1 ? key.toLowerCase() : key);
-      if (recent.length > code.length) recent.shift();
-      if (recent.length === code.length && recent.every((k, i) => k === code[i])) { recent = []; return true; }
+      if (recent.length > keys.length) recent.shift();
+      if (recent.length === keys.length && recent.every((k, i) => k === keys[i])) { recent = []; return true; }
       return false;
     };
   }
+  const konami = (code = KONAMI) => sequence(code);
+  const typed = (word) => sequence([...word.toLowerCase()]);   // a word, typed one letter at a time
 
   // have all of `wanted` been seen?
   const hasSeenAll = (seen, wanted) => wanted.length > 0 && wanted.every(n => seen.includes(n));
@@ -25,7 +27,7 @@ const PawEggs = (() => {
     return m ? new Date(+m[1], +m[2] - 1, +m[3], 12) : now;
   }
 
-  return { KONAMI, isFriday13, konami, hasSeenAll, today };
+  return { KONAMI, isFriday13, sequence, konami, typed, hasSeenAll, today };
 })();
 if (typeof module !== 'undefined') module.exports = PawEggs;
 
@@ -45,10 +47,13 @@ if (typeof module !== 'undefined') module.exports = PawEggs;
   }
 
   // 2. The old code: up up down down left right left right b a. Every card throws a party. Arrow keys in a menu or a text box are left alone.
-  const feed = PawEggs.konami();
+  // 3. Type "parade" and every style's characters walk across the page in a line (Escape, a click, or typing it again sends them home; so does the end of the line). ?parade in the address starts it too.
+  const feedKonami = PawEggs.konami(), feedParade = PawEggs.typed('parade');
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') return stopParade();
     if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target && e.target.tagName)) return;
-    if (feed(e.key)) party();
+    if (feedKonami(e.key)) party();
+    if (feedParade(e.key)) document.getElementById('parade') ? stopParade() : parade();
   });
   function party() {
     const body = document.body;
@@ -63,7 +68,36 @@ if (typeof module !== 'undefined') module.exports = PawEggs;
     toast('🎉 kibble party!');
   }
 
-  // 3. Try every style and a secret one turns up in the menu. What has been tried is remembered, and it counts when a style is chosen from the menu or from the address.
+  // each style that the menu offers sends a crowned main agent and a small relative in a hat. The characters are drawn the way the cards draw them, with the style borrowed
+  // for a moment (quietly: this does not count as having tried it); CSS does the walking, the whole line crosses the page, and then it is over.
+  function parade() {
+    if (document.getElementById('parade')) return;
+    const calm = typeof reduceMotion !== 'undefined' && reduceMotion.matches;
+    const home = Faces.style.name, styles = Faces.styles(), kinds = Object.keys(HAT_OF);
+    const pairs = styles.map((s, i) => {
+      Faces.use(s.name, { save: false, quiet: true });
+      const lead = agentSvg('copilot', 'parade-' + s.name, 'main', true), kid = agentSvg('copilot', 'parade-' + s.name, 'kid', false);
+      const mode = calm ? 'idle' : 'running';
+      return `<div class="pair"><div class="card pcell lead" data-status="${mode}" data-lv="2" data-main data-kind="think">${lead}</div>`
+        + `<div class="card pcell kid" data-status="${mode}" data-lv="2" data-kind="${kinds[i % kinds.length]}">${kid}</div><div class="plabel">${s.emoji} ${s.label}</div></div>`;
+    });
+    Faces.use(home, { save: false, quiet: true });
+    const el = document.createElement('div');
+    el.id = 'parade'; el.className = 'parade' + (calm ? ' calm' : '');
+    el.setAttribute('role', 'status'); el.setAttribute('aria-label', 'The pawsee parade');
+    el.innerHTML = `<div class="banner">🎺 the great pawsee parade</div><div class="ground"></div><div class="track">${pairs.reverse().join('')}</div>`;  // the line moves right, so the first style goes last in the row to lead it
+    el.addEventListener('click', stopParade);
+    document.body.appendChild(el);
+    const track = el.querySelector('.track');
+    if (calm) return;
+    const px = track.scrollWidth + innerWidth;
+    track.style.setProperty('--dur', Math.round(px / 140) + 's'); // about the pace of a stroll
+    track.addEventListener('animationend', stopParade);
+  }
+  function stopParade() { document.getElementById('parade')?.remove(); }
+  if (new URLSearchParams(location.search).has('parade')) setTimeout(parade, 900);
+
+  // 4. Try every style and a secret one turns up in the menu. What has been tried is remembered, and it counts when a style is chosen from the menu or from the address.
   const SEEN = 'pawsee-seen-faces';
   const seenNow = () => { try { return JSON.parse(store.get(SEEN) || '[]'); } catch { return []; } };
   function noteSeen(style) {

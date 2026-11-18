@@ -125,3 +125,16 @@ test('a style without an emoji gets the default one in the menu', () => {
   F.register({ ...F.style, name: 'plain', label: 'Plain', emoji: undefined });
   assert.equal(F.styles().find(s => s.name === 'plain').emoji, '🙂');
 });
+
+test('use() with quiet: true switches without telling onUse listeners (and without saving, when asked)', () => {
+  const F = loadMany('cel.js', 'ghosts.js');
+  const heard = [];
+  F.onUse(s => heard.push(s.name));
+  F.use('ghosts', { save: false, quiet: true });
+  assert.equal(F.style.name, 'ghosts');
+  assert.deepEqual(heard, [], 'a quiet switch is not announced');
+  F.use('cel', { quiet: true });
+  assert.deepEqual(heard, []);
+  F.use('ghosts', { save: false });
+  assert.deepEqual(heard, ['ghosts'], 'a normal switch still is');
+});
