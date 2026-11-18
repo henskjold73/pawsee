@@ -77,13 +77,14 @@ const Faces = (() => {
     try { const q = new URLSearchParams(location.search).get('faces'); if (q) { try { localStorage.setItem('pawsee.faces', q); } catch {} return q; } } catch {}
     try { return localStorage.getItem('pawsee.faces') || DEFAULT_STYLE; } catch { return DEFAULT_STYLE; }
   }
-  // use(name) switches to a style and remembers the choice; use(name, { save: false }) switches for now only
+  // use(name) switches to a style and remembers the choice; use(name, { save: false }) switches for now only;
+  // { quiet: true } also keeps the switch from being announced to onUse listeners (for borrowing a style to draw with)
   const listeners = [];
-  function use(name, { save = true } = {}) {
+  function use(name, { save = true, quiet = false } = {}) {
     if (!styles.has(name)) throw new Error(`no face style "${name}" (have: ${[...styles.keys()].join(', ') || 'none'})`);
     current = styles.get(name);
     if (save) try { localStorage.setItem('pawsee.faces', name); } catch {}
-    for (const fn of listeners) try { fn(current); } catch {}
+    if (!quiet) for (const fn of listeners) try { fn(current); } catch {}
     return current;
   }
   // secret styles stay out of the list until they are unlocked (the unlocks are remembered)
