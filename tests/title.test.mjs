@@ -132,3 +132,18 @@ test('a cut at a space needs the space to be at least 20 characters in', () => {
 test('all trailing punctuation is removed before the ellipsis', () => {
   assert.equal(titleFromPrompt('abcde, ' + 'f'.repeat(30) + ' z', 8), 'Abcde\u2026');
 });
+
+table('cases found by mutation testing', [
+  ['y???', null], ['n???', null],                                          // one-letter yes/no, even with punctuation
+  ['so well then ok?', null],                                              // "ok" left over after three fillers is still no topic
+  ['<br/>', 'Pasted code'],                                                // a self-closing tag is code, not markup
+  ['// please fix the bug', 'Fix the bug'],                                // a word tidied away at the start leaves no space that hides the filler
+  ["open 'notes.md' please", "Open 'notes.md' please"],                    // a file name without a slash is left alone
+  ["look at docs/user's-guide.md", "Look at user's-guide.md"],             // only quotes and brackets in front of a path go
+  ['open ((docs//', 'Open docs'],                                          // all of them, even with nothing but slashes after
+  ['Explain // comments in js', 'Explain comments in js'],                 // a word that tidies away to nothing leaves no double space
+]);
+
+test('trailing spaces on the first line do not change the title', () => {
+  assert.equal(titleFromPrompt('<details  \nmore'), titleFromPrompt('<details\nmore'));
+});
