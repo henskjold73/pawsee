@@ -21,6 +21,6 @@ export async function latestRelease(url, { fetchFn = fetch, timeoutMs = 5000 } =
     const j = await res.json();
     if (!parse(j.tag_name) || j.draft || j.prerelease) return null;
     const link = typeof j.html_url === 'string' && /^https:\/\//.test(j.html_url) ? j.html_url : null;
-    return { version: String(j.tag_name).replace(/^v/i, ''), url: link };
+    return { version: String(j.tag_name).trim().replace(/^v/i, ''), url: link };
   } catch { return null; }
 }

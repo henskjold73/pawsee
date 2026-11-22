@@ -20,7 +20,7 @@ test('versions compare as numbers, not text', () => {
 });
 
 test('anything that is not a plain x.y.z is never "newer"', () => {
-  for (const bad of ['', null, undefined, 'latest', '1.0', '1.0.0-beta.1', '1.2.3.4', 'v', '0.1.x']) {
+  for (const bad of ['', null, undefined, 'latest', '1.0', '1.0.0-beta.1', '1.2.3.4', 'v', '0.1.x', '1.0.0v', '1.v0.0']) {
     assert.equal(isNewer(bad, '0.0.1'), false, String(bad));
     assert.equal(isNewer('9.9.9', bad), false, String(bad));
   }
@@ -33,6 +33,10 @@ test('latestRelease reads the tag and link of a published release', async () => 
   assert.deepEqual(r, { version: '0.3.1', url: 'https://github.com/o/r/releases/tag/v0.3.1' });
 });
 
+test('latestRelease trims stray whitespace from the tag, as isNewer does', async () => {
+  assert.equal((await latestRelease('x', { fetchFn: answer({ tag_name: ' v1.2.3\n' }) })).version, '1.2.3');
+});
+
 test('latestRelease ignores drafts, pre-releases, odd tags and unsafe links', async () => {
   assert.equal(await latestRelease('x', { fetchFn: answer({ tag_name: 'v1.0.0', draft: true }) }), null);
   assert.equal(await latestRelease('x', { fetchFn: answer({ tag_name: 'v1.0.0', prerelease: true }) }), null);
@@ -42,6 +46,7 @@ test('latestRelease ignores drafts, pre-releases, odd tags and unsafe links', as
   assert.deepEqual(r, { version: '1.0.0', url: null }); // still an update, but no link to click
   assert.equal((await latestRelease('x', { fetchFn: answer({ tag_name: 'v1.0.0', html_url: 'http://insecure.example' }) })).url, null);
   assert.equal((await latestRelease('x', { fetchFn: answer({ tag_name: 'v1.0.0', html_url: 'javascript:alert("https://")' }) })).url, null); // https must be the very start
+  assert.equal((await latestRelease('x', { fetchFn: answer({ tag_name: 'v1.0.0', html_url: ['https://github.com/o/r'] }) })).url, null); // the link must be a string
 });
 
 test('latestRelease gives null when the request fails in any way', async () => {
