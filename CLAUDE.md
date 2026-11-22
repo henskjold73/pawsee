@@ -11,7 +11,7 @@ A localhost dashboard of animated characters showing what Copilot CLI, Claude Co
 - `npm run dev` serves on port 4748 with watch mode (it's the `dev` entry in `.claude/launch.json`). Port 4747 is kept free for a normal `pawsee` run.
 - `npm test` runs `node --test` over `tests/*.test.mjs`. A focused run is `node --test tests/<name>.test.mjs`.
 - Server tests use `tests/harness.mjs` `start()`. It spawns `server.mjs` on a free 127.0.0.1 port and writes temp dirs under the OS tmpdir, then `stop()` cleans them up. This is safe to run without asking.
-- `npm run mutate` runs Stryker on the pure modules. It's slow and writes `reports/mutation.html`. Run it only when asked. Its test command lists specific test files, so a new test file covering a mutated module must be added there too (for example `tests/meter.test.mjs` also covers `claude.mjs` but isn't listed).
+- `npm run mutate` runs Stryker on the pure modules. It's slow and writes `reports/mutation.html`. Run it only when asked. Its test command lists specific test files, so a new test file covering a mutated module must be added there too.
 
 ## Workflow
 - Work on a branch and open a PR against `main`. CI (`.github/workflows/test.yml`) runs `npm test` on Ubuntu, macOS and Windows.
