@@ -13,6 +13,7 @@
   <nav class="views" aria-label="View"><button type="button" data-view="live" aria-pressed="true">Live</button><button type="button" data-view="recent" aria-pressed="false">Recent</button></nav>
   <button id="snd" class="snd" type="button" aria-pressed="false" title="Sounds are off. Click to play a soft chime when something needs you or work finishes">🔇 Sound off</button>
   <button id="ntf" class="snd" type="button" aria-pressed="false">🖥 Notify off</button>
+  <button id="mapbtn" class="snd" type="button" aria-pressed="false">🗺 Map</button>
   <select id="fcs" class="snd pick" aria-label="Face style" hidden></select>
   <span id="eggnote" class="eggnote" hidden></span>
   <span id="updwrap" class="upd" hidden><a id="upd" target="_blank" rel="noopener"></a><button id="updx" type="button" aria-label="Hide this notice" title="Hide until the next release">×</button></span>
@@ -21,6 +22,7 @@
 <div id="drift" class="drift" role="status" hidden></div>
 <div id="demo" class="demo" hidden>🧪 Demo data — these agents are not real. <a href="/">Show live agents</a></div>
 <main id="grid" class="grid"></main>
+<section id="map" class="map" aria-label="Map"></section>
 <p id="empty" class="empty" hidden>No agents yet. Start a Copilot CLI session and its paws will show up here.</p>
 <section id="history" class="history" hidden></section>
 <svg id="boilsvg" width="0" height="0" style="position:absolute" aria-hidden="true"><defs id="brand-defs"></defs>
@@ -48,6 +50,7 @@
 <script src="mood.js"></script>
 <script src="meter.js"></script>
 <script src="app.js"></script>
+<script src="map.js"></script>
 <script src="history.js"></script>
 <script src="eggs.js"></script>
 <div id="toast" class="toast" role="status" hidden></div>

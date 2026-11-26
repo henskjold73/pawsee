@@ -8,7 +8,7 @@
 
   const tabs = document.querySelectorAll('[data-view]');
   const box = document.getElementById('history');
-  const live = [document.getElementById('grid'), document.getElementById('empty'), document.getElementById('demo'), document.getElementById('drift')];
+  const live = [document.getElementById('grid'), document.getElementById('empty'), document.getElementById('demo'), document.getElementById('drift'), document.getElementById('map')];
   let view = 'live', data = null, timer = 0, replay = null, shown = false; // `shown`: a replay's paws are on screen, so a refresh must not wipe them
   const open = new Set(); // sessions the person expanded, kept across refreshes
 

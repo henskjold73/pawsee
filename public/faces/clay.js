@@ -195,5 +195,39 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'clay', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'hair', colors: colors(HAIR, null) }],
   });
 
-  return { name: 'clay', label: 'Claymation', emoji: '🫠', description: 'Lumpy plasticine puppets with googly eyes, toothy grins and sausage limbs.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  // the map: a plasticine model town on a green board. Every domain is a lumpy clay hill with ball-on-a-stick trees, the base is
+  // a squashy town hall, the ways are rolled clay snakes, and the web is a clay telly with a bent aerial (see map.js)
+  const map = (() => {
+    const BOARD = '#7ac06a', BOARD_DARK = '#5aa04a', HILLS = ['#f2c86a', '#e88a6a', '#8ab8e8', '#c8a0e0', '#f2a0b8', '#a8d870'], TREE = '#3a9a4a', TRUNK = '#8a5a3a';
+    const LUMP = 'filter="url(#clay-map-lumps)"', f = n => +n.toFixed(1);
+    const edge = (w = 2.2) => `stroke="${EDGE}" stroke-width="${w}" stroke-linejoin="round"`;
+    const shine = (x, y, rx, ry) => `<ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(rx)}" ry="${f(ry)}" fill="#fff" opacity=".3"/>`;
+    const tree = (x, y, k) => `<g transform="translate(${f(x)} ${f(y)}) scale(${k})" ${LUMP}><rect x="-3.5" y="-20" width="7" height="20" rx="3" fill="${TRUNK}" ${edge()}/><circle cy="-30" r="14" fill="${TREE}" ${edge()}/>${shine(-5, -36, 5, 3)}</g>`;
+    return {
+      backdrop: (w, h) => `<defs><filter id="clay-map-lumps" x="-15%" y="-15%" width="130%" height="130%"><feTurbulence type="fractalNoise" baseFrequency=".03" numOctaves="1" seed="5"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter>
+          <pattern id="clay-prints" width="130" height="110" patternUnits="userSpaceOnUse"><ellipse cx="30" cy="30" rx="10" ry="13" fill="none" stroke="${BOARD_DARK}" stroke-width="1.4" opacity=".6"/><ellipse cx="30" cy="30" rx="6" ry="8" fill="none" stroke="${BOARD_DARK}" stroke-width="1.2" opacity=".6"/>
+          <path d="M90 80q10-6 20 0" fill="none" stroke="${BOARD_DARK}" stroke-width="2" opacity=".5"/></pattern></defs>
+        <rect width="${w}" height="${h}" fill="${BOARD}"/><rect width="${w}" height="${h}" fill="url(#clay-prints)"/>`,
+      // a squashy town hall: a fat wall, a dome on top, a door and two round windows
+      base: (seed) => `<path d="${Faces.blob(106, seed, { squash: .6 })}" fill="#e8dcc8" ${edge(2.6)} ${LUMP}/>` + tree(-86, 8, 1.1) + tree(88, 0, .95)
+        + `<g transform="translate(0 -8)" ${LUMP}><rect x="-56" y="-56" width="112" height="62" rx="12" fill="${SHIRT}" ${edge(2.6)}/><path d="M-36 -56q0-44 36-44t36 44z" fill="#f2c86a" ${edge(2.6)}/>`
+        + `<circle cy="-104" r="7" fill="${PANTS}" ${edge()}/><path d="M-12 6v-26q0-12 12-12t12 12v26z" fill="${MOUTH}"/><circle cx="-34" cy="-30" r="10" fill="${WHITE}" ${edge()}/><circle cx="34" cy="-30" r="10" fill="${WHITE}" ${edge()}/>`
+        + `<circle cx="-32" cy="-29" r="4" fill="${PUPIL}"/><circle cx="32" cy="-29" r="4" fill="${PUPIL}"/>${shine(-30, -48, 18, 5)}</g>`,
+      // a lumpy clay hill with a tree or two
+      place: (name, seed, n) => { const r = 60 + Math.min(n, 4) * 3, rnd = rng(seed | 0), c = HILLS[Math.floor(rnd() * HILLS.length)], d = Faces.blob(r, seed, { squash: .6, wob: .22, bumps: 9 });
+        return `<g ${LUMP}><path d="${d}" fill="#000" opacity=".15" transform="translate(3 6)"/><path d="${d}" fill="${c}" ${edge(2.6)}/>${shine(-r * .3, -r * .22, r * .3, r * .08)}</g>`
+          + tree(-r * .55, -r * .05, .9) + (rnd() < .6 ? tree(r * .62, r * .02, .75) : ''); },
+      // a little lumpy house
+      building: (name, seed) => `<g ${LUMP}><rect x="-11" y="-6" width="22" height="16" rx="4" fill="${HILLS[(seed >>> 0) % HILLS.length]}" ${edge()}/><path d="M-15 -4q15-18 30 0z" fill="${SHIRT}" ${edge()}/><rect x="-3" y="2" width="6" height="8" rx="2" fill="${MOUTH}"/></g>`,
+      // a rolled clay snake, with a shine along its back
+      route: (x1, y1, x2, y2) => `<g ${LUMP}><path d="M${x1} ${y1}L${x2} ${y2}" stroke="${EDGE}" stroke-width="13" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#f2e0b0" stroke-width="10" stroke-linecap="round"/>`
+        + `<path d="M${x1} ${y1 - 2}L${x2} ${y2 - 2}" stroke="#fff" stroke-opacity=".35" stroke-width="3" stroke-linecap="round"/></g>`,
+      // a clay telly with a bent aerial
+      sea: () => `<g ${LUMP}><rect x="-30" y="-48" width="60" height="44" rx="10" fill="#8a6ad0" ${edge(2.4)}/><rect x="-22" y="-40" width="34" height="28" rx="6" fill="#bfeaf2" ${edge()}/>`
+        + `<circle cx="20" cy="-34" r="3.5" fill="#f2c86a"/><circle cx="20" cy="-22" r="3.5" fill="#f2c86a"/><path d="M-4 -48l-14-24M4 -48l10-20 8 4" fill="none" stroke="${PUPIL}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`
+        + `<rect x="-22" y="-4" width="8" height="8" rx="2" fill="#5a4aa0"/><rect x="14" y="-4" width="8" height="8" rx="2" fill="#5a4aa0"/>${shine(-12, -34, 8, 3)}</g>`,
+    };
+  })();
+
+  return { name: 'clay', label: 'Claymation', emoji: '🫠', description: 'Lumpy plasticine puppets with googly eyes, toothy grins and sausage limbs.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT, map };
 })());

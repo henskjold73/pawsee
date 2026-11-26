@@ -210,3 +210,20 @@ test('npx / dlx / exec commands show the logo of the tool they run', async () =>
     await h.until(a => main(a, '0a1b2c3d-5e6f')?.brand === brand && a, `${command} -> ${brand}`);
   }
 });
+
+test('Claude Code: file tools put the agent in a domain for the map, and it stays there', async () => {
+  const id = '99999999-dddd';
+  const s = claudeSession(h, id); // cwd /work/demo, which does not exist, so the plain folder rule applies
+  s.prompt('Fix the parser');
+  s.tool('Read', { file_path: '/work/demo/lib/parser/tokens.js' });
+  let m = await h.until(a => main(a, id)?.where && main(a, id), 'main in a domain');
+  assert.deepEqual(m.where, { eco: 'plain', domain: 'parser', building: null });
+  s.tool('Bash', { command: 'npm test' });
+  m = await h.until(a => main(a, id)?.kind === 'shell' && main(a, id), 'shell');
+  assert.equal(m.where.domain, 'parser'); // a command without a file does not move it
+  const sub = s.agent('feed', { type: 'general-purpose' });
+  sub.prompt('look at billing');
+  sub.tool('Edit', { file_path: '/work/demo/src/billing/invoice/total.js' });
+  const kid = await h.until(a => a.find(c => c.session === id.slice(0, 8) && c.id !== 'main' && c.where), 'sub-agent in a domain');
+  assert.deepEqual(kid.where, { eco: 'plain', domain: 'billing', building: 'invoice' });
+});

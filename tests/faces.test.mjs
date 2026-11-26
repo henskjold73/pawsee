@@ -138,3 +138,19 @@ test('use() with quiet: true switches without telling onUse listeners (and witho
   F.use('ghosts', { save: false });
   assert.deepEqual(heard, ['ghosts'], 'a normal switch still is');
 });
+
+for (const file of files) {
+  const F = load(file);
+  if (!F.style.map) continue;
+  test(`${file}: its map kit draws every part`, () => {
+    const m = F.style.map;
+    for (const svg of [m.backdrop(800, 600), m.base(1), m.place('booking', 2, 3), m.building('api', 3), m.route(0, 0, 100, 50), m.sea()])
+      assert.match(svg, /^\s*</, 'an SVG fragment');
+  });
+}
+
+test('a map kit must be complete', () => {
+  const F = load('cel.js');
+  assert.deepEqual(F.problems({ ...F.style, map: { backdrop() {} } }).filter(p => p.startsWith('map.')).length, 5);
+  assert.deepEqual(F.problems({ ...F.style, map: undefined }), []);
+});

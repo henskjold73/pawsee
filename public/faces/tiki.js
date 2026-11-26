@@ -190,5 +190,47 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'wood', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'leaves', colors: colors(LEAF, null) }],
   });
 
-  return { name: 'tiki', label: 'Tiki', emoji: '🌴', description: 'Carved wooden tiki masks with flat teeth, painted bands, leaf hair and a grass skirt.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  // the map: a lagoon of small islands, one per domain, round a big home island with a longhouse and a dock (see map.js)
+  const map = (() => {
+    const SEA = '#1f8fb0', DEEP = '#13607e', SHALLOW = '#6fd3d0', SAND = '#f0d79a', SAND_DARK = '#d7b46a', TURF = '#6fae3e', TURF_DARK = '#4f8a2e', WOOD = '#9a5a2c', THATCH = '#d2a24c';
+    // a soft lumpy outline round 0,0: the same seed always gives the same island
+    const blob = (r, seed, bumps = 13, wob = 0.16, squash = 0.82) => Faces.blob(r, seed, { bumps, wob, squash });
+    const island = (r, seed) => `<path d="${blob(r * 1.22, seed + 7, 11, .1)}" fill="${SHALLOW}" opacity=".55"/>`
+      + `<path d="${blob(r, seed)}" fill="${SAND}" stroke="${SAND_DARK}" stroke-width="3"/>`
+      + `<path d="${blob(r * .68, seed + 3)}" transform="translate(0 -4)" fill="${TURF}" stroke="${TURF_DARK}" stroke-width="2.5"/>`;
+    const palm = (x, y, lean = 1, k = 1) => {
+      const tx = x + 10 * lean * k, ty = y - 44 * k;
+      const fronds = [-150, -110, -70, -30, 10, -170].map(a => { const r = a * Math.PI / 180, ex = tx + Math.cos(r) * 26 * k, ey = ty + Math.sin(r) * 16 * k + 8 * k;
+        return `<path d="M${tx} ${ty}Q${(tx + ex) / 2} ${ty - 12 * k} ${ex.toFixed(1)} ${ey.toFixed(1)}" stroke="${TURF_DARK}" stroke-width="${7 * k}" fill="none" stroke-linecap="round"/>`; }).join('');
+      return `<path d="M${x} ${y}Q${x + 2 * lean * k} ${y - 26 * k} ${tx} ${ty}" stroke="${INK}" stroke-width="${7.5 * k}" fill="none" stroke-linecap="round"/>`
+        + `<path d="M${x} ${y}Q${x + 2 * lean * k} ${y - 26 * k} ${tx} ${ty}" stroke="${WOOD}" stroke-width="${4.5 * k}" fill="none" stroke-linecap="round" stroke-dasharray="${5 * k} ${1.5 * k}"/>`
+        + fronds + `<circle cx="${tx}" cy="${ty + 3 * k}" r="${3.2 * k}" fill="#6a4020"/>`;
+    };
+    const hut = (w = 30) => { const h = w * .55, f = n => +n.toFixed(1);
+      return `<rect x="${f(-w * .36)}" y="${f(-h * .2)}" width="${f(w * .72)}" height="${f(h * .75)}" fill="${WOOD}" stroke="${INK}" stroke-width="2"/>`
+        + `<rect x="${f(-w * .1)}" y="${f(h * .1)}" width="${f(w * .2)}" height="${f(h * .45)}" rx="2" fill="${INK}"/>`
+        + `<path d="M${f(-w * .55)} ${f(-h * .1)}L0 ${f(-h * 1.15)}L${f(w * .55)} ${f(-h * .1)}Z" fill="${THATCH}" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>`
+        + `<path d="M${f(-w * .3)} ${f(-h * .4)}h${f(w * .6)}M${f(-w * .18)} ${f(-h * .72)}h${f(w * .36)}" stroke="${GRASS_DARK}" stroke-width="1.6"/>`; };
+    return {
+      backdrop: (w, h) => `<defs><pattern id="tiki-map-grain" width="9" height="40" patternUnits="userSpaceOnUse"><path d="M2 0Q5 10 2 20T2 40M6.5 0Q4 12 6.5 22T6.5 40" fill="none" stroke="#000" stroke-opacity=".13" stroke-width="1"/></pattern><radialGradient id="tiki-lagoon" cx="50%" cy="50%" r="70%"><stop offset="0" stop-color="${SEA}"/><stop offset="1" stop-color="${DEEP}"/></radialGradient>
+        <pattern id="tiki-waves" width="90" height="60" patternUnits="userSpaceOnUse"><path d="M8 18q7-6 14 0t14 0M52 48q7-6 14 0t14 0" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="2.4" stroke-linecap="round"/></pattern></defs>
+        <rect width="${w}" height="${h}" fill="url(#tiki-lagoon)"/><rect width="${w}" height="${h}" fill="url(#tiki-waves)"/>`,
+      base: (seed) => island(100, seed)
+        + `<path d="M-14 70h28v70h-28z" fill="${WOOD}" stroke="${INK}" stroke-width="2.5"/><path d="M-14 84h28M-14 98h28M-14 112h28M-14 126h28" stroke="${INK}" stroke-width="1.4" opacity=".6"/>`
+        + palm(-80, -4, -1, 1) + palm(76, -10, 1, .9)
+        + `<g transform="translate(0 -38)"><rect x="-46" y="-6" width="92" height="30" fill="${WOOD}" stroke="${INK}" stroke-width="2.5"/><rect x="-46" y="-6" width="92" height="30" fill="url(#tiki-map-grain)"/>
+          <rect x="-9" y="4" width="18" height="20" rx="3" fill="${INK}"/><path d="M-58 -2L-36 -40H36L58 -2Z" fill="${THATCH}" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M-44 -14h88M-38 -27h76" stroke="${GRASS_DARK}" stroke-width="2"/><path d="M-36 -40l-6-10M36 -40l6-10" stroke="${INK}" stroke-width="3" stroke-linecap="round"/></g>`,
+      place: (name, seed, n) => { const r = 64 + Math.min(n, 4) * 3, rnd = rng(seed | 0), lean = rnd() < .5 ? -1 : 1;
+        return island(r, seed) + palm(lean * (r * .62), -r * .32, lean, .8) + (rnd() < .5 ? palm(-lean * r * .7, r * .05, -lean, .65) : ''); },
+      building: () => hut(30),
+      route: (x1, y1, x2, y2) => { const mx = (x1 + x2) / 2 + (y2 - y1) * .12, my = (y1 + y2) / 2 - (x2 - x1) * .12;
+        return `<path d="M${x1} ${y1}Q${mx.toFixed(1)} ${my.toFixed(1)} ${x2} ${y2}" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="4" stroke-dasharray="1 14" stroke-linecap="round"/>`; },
+      sea: () => `<path d="${blob(34, 5, 9, .3)}" fill="#7d7468" stroke="${INK}" stroke-width="2.5"/>`
+        + `<rect x="-5" y="-58" width="10" height="56" fill="${WOOD}" stroke="${INK}" stroke-width="2"/><path d="M-5 -44h10M-5 -30h10" stroke="${RED}" stroke-width="4"/>`
+        + `<circle cy="-66" r="22" fill="${YELLOW}" opacity=".25"/><path d="M0 -82q11 9 5 18q-5 6-10 0q-6-9 5-18z" fill="#f08a24" stroke="${INK}" stroke-width="2"/><path d="M0 -74q5 5 2 9q-3 3-5 0q-2-5 3-9z" fill="${YELLOW}"/>`,
+    };
+  })();
+
+  return { name: 'tiki', label: 'Tiki', emoji: '🌴', description: 'Carved wooden tiki masks with flat teeth, painted bands, leaf hair and a grass skirt.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT, map };
 })());

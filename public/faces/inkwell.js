@@ -195,5 +195,49 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'skin', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'hair', colors: colors(HAIR, null) }],
   });
 
-  return { name: 'inkwell', label: 'Inkwell', emoji: '🖋️', description: 'Gloomy storybook folk in scratchy ink on parchment, with hollow eyes and spindly limbs.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  // the map: an old parchment chart of a gloomy wood, drawn in the same scratchy ink. Every domain is a camp in a clearing among
+  // spindly bare trees, the base is a crooked cottage with a chimney, the ways are dotted footpaths, and the web is a raven
+  // on a dead tree that brings the news (see map.js). Everything here is drawn fresh for pawsee, in a generic storybook look.
+  const map = (() => {
+    const PAPER = '#e6d6b0', PAPER_DARK = '#c8b080', WASH = '#8a7a5a', MOSS = '#6a6a3a', FIRE = '#e08a2a', GLOW = '#f2c24a';
+    const MW = 'filter="url(#inkwell-map-wobble)"', HATCH = 'url(#inkwell-map-hatch)';
+    const f = n => +n.toFixed(1);
+    const ink = (w = 2.6) => `fill="none" stroke="${INK}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
+    // a spindly bare tree: a crooked trunk that forks into thin twigs
+    const tree = (x, y, k, rnd) => { const lean = (rnd() - .5) * 10 * k, tx = x + lean, ty = y - 58 * k;
+      const twig = (a, l) => `M${f(tx)} ${f(ty + 14 * k)}l${f(Math.cos(a) * l * k)} ${f(Math.sin(a) * l * k)}`;
+      return `<g ${MW}><path d="M${f(x - 4 * k)} ${y}q${f(lean * .3)} ${f(-30 * k)} ${f(lean + 2 * k)} ${f(-58 * k)}L${f(x + 4 * k)} ${y}z" fill="${INK}"/>`
+        + `<path d="${twig(-2.3, 22)}${twig(-1.2, 26)}${twig(-.4, 20)}${twig(-1.8, 30)}M${f(tx)} ${f(ty)}q${f(-6 * k)} ${f(-10 * k)} ${f(-2 * k)} ${f(-18 * k)}" ${ink(2 * k)}/></g>`; };
+    const clearing = (r, seed) => `<path d="${Faces.blob(r * 1.1, seed + 5, { squash: .6, wob: .3 })}" fill="${WASH}" opacity=".35" ${MW}/><path d="${Faces.blob(r, seed, { squash: .58, wob: .25 })}" fill="${PAPER}" ${ink(2.6)} ${MW}/>`;
+    return {
+      backdrop: (w, h) => `<defs><filter id="inkwell-map-wobble" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".05" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="3.5"/></filter>
+          <pattern id="inkwell-map-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><path d="M0 0V6" stroke="${INK}" stroke-width="1" stroke-opacity=".55"/></pattern>
+          <radialGradient id="inkwell-map-age" cx="50%" cy="50%" r="72%"><stop offset=".55" stop-color="${PAPER_DARK}" stop-opacity="0"/><stop offset="1" stop-color="#6a4a24" stop-opacity=".55"/></radialGradient>
+          <pattern id="inkwell-map-grass" width="110" height="90" patternUnits="userSpaceOnUse"><path d="M12 30l3-8 3 8M60 70l2-7 3 7M90 20l3-8 2 8M36 82l2-6 3 6" fill="none" stroke="${INK}" stroke-opacity=".35" stroke-width="1.4" stroke-linecap="round"/></pattern></defs>
+        <rect width="${w}" height="${h}" fill="${PAPER_DARK}"/><rect width="${w}" height="${h}" fill="url(#inkwell-map-grass)"/><rect width="${w}" height="${h}" fill="url(#inkwell-map-age)"/>`,
+      // a crooked cottage: leaning walls, a sagging roof, a lit window and a chimney (no smoke: it would run into the repo's name above)
+      base: (seed) => { const rnd = rng(seed | 0);
+        return clearing(104, seed) + tree(-92, 6, 1.1, rnd) + tree(88, -2, 1, rnd)
+          + `<g ${MW} transform="translate(0 -8)"><path d="M-44 30l4-62h76l6 62z" fill="#7a6a50" ${ink(3)}/><path d="M-44 30l4-62h76l6 62z" fill="${HATCH}"/>`
+          + `<path d="M-58 -26q20-46 50-58q34 10 54 58z" fill="#4a3a2a" ${ink(3)}/><path d="M-46 -42l84 2M-36 -58l66 0" ${ink(1.6)}/>`
+          + `<path d="M18 -70v-26h14v34" fill="#5a4a3a" ${ink(2.6)}/>`
+          + `<path d="M-10 30v-24q0-10 10-10t10 10v24z" fill="${INK}"/><rect x="-34" y="-18" width="16" height="16" fill="${GLOW}" ${ink(2.4)}/><path d="M-26 -18v16M-34 -10h16" ${ink(1.6)}/></g>`; },
+      // a camp in a clearing: a lantern on a post and a few bare trees round the edge
+      place: (name, seed, n) => { const r = 60 + Math.min(n, 4) * 3, rnd = rng(seed | 0), trees = 2 + Math.floor(rnd() * 2);
+        return clearing(r, seed) + [...Array(trees)].map((_, i) => { const a = Math.PI * (1.15 + i * .7 / trees) + rnd() * .3; return tree(Math.cos(a) * r * .9, Math.sin(a) * r * .5, .75 + rnd() * .2, rnd); }).join('')
+          + `<g ${MW} transform="translate(${f(r * .62)} ${f(-r * .06)})"><path d="M0 0v-40M0 -40h8" ${ink(3)}/><rect x="4" y="-38" width="9" height="12" fill="${GLOW}" ${ink(2)}/></g>`
+          + `<circle cx="${f(r * .66)}" cy="${f(-r * .06 - 32)}" r="12" fill="${GLOW}" opacity=".25"/>`; },
+      // a little crooked shack with a patched roof
+      building: () => `<g ${MW}><path d="M-12 10l1-18h22l2 18z" fill="#7a6a50" ${ink(2)}/><path d="M-16 -6l15-14 17 13z" fill="${PATCH}" ${ink(2)}/><path d="M-3 10v-9h6v9z" fill="${INK}"/></g>`,
+      // a dotted footpath, wandering a little
+      route: (x1, y1, x2, y2) => { const mx = (x1 + x2) / 2 + (y2 - y1) * .15, my = (y1 + y2) / 2 - (x2 - x1) * .15;
+        return `<path d="M${x1} ${y1}Q${f(mx)} ${f(my)} ${x2} ${y2}" fill="none" stroke="${INK}" stroke-opacity=".6" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round"/>`; },
+      // a raven on a dead tree: it brings news from far away
+      sea: () => { const rnd = rng(31);
+        return `<ellipse rx="34" ry="12" fill="${WASH}" opacity=".4"/>` + tree(0, 4, 1.2, rnd)
+          + `<g transform="translate(-14 -62)" ${MW}><path d="M-12 0q4-12 16-12q8 0 10 6l8 2-8 3q-2 10-14 10q-10 0-12-9z" fill="${INK}"/><path d="M-12 0l-10 6 10-1" fill="${INK}"/><circle cx="8" cy="-5" r="1.8" fill="${GLOW}"/></g>`; },
+    };
+  })();
+
+  return { name: 'inkwell', label: 'Inkwell', emoji: '🖋️', description: 'Gloomy storybook folk in scratchy ink on parchment, with hollow eyes and spindly limbs.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT, map };
 })());

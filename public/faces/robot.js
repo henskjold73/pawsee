@@ -198,5 +198,43 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'metal', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'lights', colors: colors(ACCENT, null) }],
   });
 
-  return { name: 'robot', label: 'Robot', emoji: '🤖', description: 'Tin heads with LED eyes, a speaker grille and an antenna, on a body of boxes and pipes.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  // the map: a factory floor. Every domain is a machine on its own steel pad, the base is the control room,
+  // agents follow painted floor lanes, and the web is a radio mast with a dish (see map.js)
+  const map = (() => {
+    const FLOOR = '#9aa4b0', STEEL = '#c8d0da', STEEL_DARK = '#7a8696', HAZARD = '#f2c230', SCREEN = '#2ad0a0', LED = ['#ff5a4a', '#ffc83a', '#4ae08a', '#4ab8ff'];
+    const ACCENT = ['#e07a3a', '#3a8ae0', '#d04a6a', '#4ab07a', '#8a6ad0'];
+    const f = n => +n.toFixed(1);
+    // a steel pad seen from above at a tilt: an octagon with a hazard rim
+    const pad = (r) => { const pts = [...Array(8)].map((_, i) => { const a = (i + .5) / 8 * 2 * Math.PI; return `${f(Math.cos(a) * r)} ${f(Math.sin(a) * r * .6)}`; }).join('L');
+      return `<path d="M${pts}Z" fill="${STEEL_DARK}" transform="translate(0 6)"/><path d="M${pts}Z" fill="${STEEL}" stroke="${INK}" stroke-width="3"/><path d="M${pts}Z" fill="none" stroke="${HAZARD}" stroke-width="5" stroke-dasharray="10 8" transform="scale(.86)"/>`; };
+    const box = (x, y, w, h, c) => `<rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" rx="3" fill="${c}" stroke="${INK}" stroke-width="2.5"/>`;
+    const gear = (x, y, r, c) => `<g transform="translate(${f(x)} ${f(y)})"><circle r="${r}" fill="${c}" stroke="${INK}" stroke-width="2.4" stroke-dasharray="${f(r * .5)} ${f(r * .32)}"/><circle r="${f(r * .7)}" fill="${c}" stroke="${INK}" stroke-width="2"/><circle r="${f(r * .25)}" fill="${INK}"/></g>`;
+    return {
+      backdrop: (w, h) => `<defs><pattern id="robot-plates" width="80" height="80" patternUnits="userSpaceOnUse"><rect width="80" height="80" fill="${FLOOR}"/><path d="M0 .5H80M.5 0V80" stroke="#6a7480" stroke-width="2"/>
+          <circle cx="8" cy="8" r="2" fill="#6a7480"/><circle cx="72" cy="8" r="2" fill="#6a7480"/><circle cx="8" cy="72" r="2" fill="#6a7480"/><circle cx="72" cy="72" r="2" fill="#6a7480"/><path d="M24 40h32M40 24v32" stroke="#a8b2be" stroke-width="1.4" opacity=".7"/></pattern></defs>
+        <rect width="${w}" height="${h}" fill="url(#robot-plates)"/>`,
+      // the control room: a desk of screens under a beacon, on a big pad
+      base: () => pad(112)
+        + `<g transform="translate(0 -30)">${box(-74, -40, 148, 62, '#5a6676')}${box(-64, -30, 38, 26, '#14201e')}${box(-19, -34, 38, 30, '#14201e')}${box(26, -30, 38, 26, '#14201e')}
+          <path d="M-58 -18l6-6 6 4 8-8 6 6M-12 -16h8l4-8 6 14 4-6h6M32 -14q8-10 16 0t12-4" fill="none" stroke="${SCREEN}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          ${LED.map((c, i) => `<circle cx="${-54 + i * 14}" cy="12" r="3.6" fill="${c}" stroke="${INK}" stroke-width="1.4"/>`).join('')}
+          ${box(34, 4, 30, 10, '#3a4452')}<path d="M0 -40v-22" stroke="${INK}" stroke-width="4"/><circle cy="-66" r="8" fill="#ff5a4a" stroke="${INK}" stroke-width="2.5"/></g>`,
+      // a machine on its pad: a body with a pipe, one or two gears and a smoke stack, in a colour of its own
+      place: (name, seed, n) => { const r = 62 + Math.min(n, 4) * 3, rnd = rng(seed | 0), c = ACCENT[Math.floor(rnd() * ACCENT.length)], wide = 50 + rnd() * 24;
+        return pad(r) + `<g transform="translate(${f(-r * .1)} -18)">${box(-wide / 2, -34, wide, 40, c)}<rect x="${f(-wide / 2 + 6)}" y="-28" width="${f(wide * .35)}" height="12" rx="2" fill="#14201e"/>
+          <circle cx="${f(wide / 2 - 10)}" cy="-22" r="3.4" fill="${LED[Math.floor(rnd() * 4)]}" stroke="${INK}" stroke-width="1.4"/>
+          ${gear(-wide / 2 - 4, -6, 11 + rnd() * 4, STEEL)}${rnd() < .6 ? gear(wide / 2 + 6, -30, 8, HAZARD) : ''}
+          <path d="M${f(wide / 2 - 16)} -34v-18h10v18" fill="${STEEL_DARK}" stroke="${INK}" stroke-width="2.2"/><path d="M${f(wide / 2 + 4)} 0h${f(r * .3)}" stroke="${INK}" stroke-width="7" stroke-linecap="round"/><path d="M${f(wide / 2 + 4)} 0h${f(r * .3)}" stroke="${STEEL}" stroke-width="3.5" stroke-linecap="round"/></g>`; },
+      // a server rack with blinking lights
+      building: (name, seed) => box(-11, -18, 22, 30, '#3a4452') + [0, 1, 2].map(i => `<rect x="-7" y="${-14 + i * 9}" width="14" height="5" rx="1" fill="#1a2028"/><circle cx="${4}" cy="${-11.5 + i * 9}" r="1.5" fill="${LED[(seed + i) % 4]}"/>`).join(''),
+      // a painted floor lane with chevrons pointing to the machine
+      route: (x1, y1, x2, y2) => `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${HAZARD}" stroke-opacity=".75" stroke-width="16" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="${INK}" stroke-opacity=".55" stroke-width="16" stroke-dasharray="8 12"/>`,
+      // a radio mast with a dish, beaming at the sky
+      sea: () => pad(30) + `<g transform="scale(.72)"><path d="M-14 0L0 -70L14 0M-9 -24h18M-5 -46h10" fill="none" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>`
+        + `<path d="M-22 -86q10 22 34 10z" fill="${STEEL}" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/><path d="M0 -78l10-12" stroke="${INK}" stroke-width="2.5"/><circle cx="12" cy="-92" r="3.6" fill="#ff5a4a" stroke="${INK}" stroke-width="1.4"/>`
+        + [12, 20].map((r, i) => `<path d="M${18 + r * .5} ${-100 - r}q${r} ${r * .6} ${r * .3} ${r * 1.6}" fill="none" stroke="#fff" stroke-opacity="${.85 - i * .3}" stroke-width="2.4" stroke-linecap="round"/>`).join('') + '</g>', // shrunk to stay inside the map's top edge
+    };
+  })();
+
+  return { name: 'robot', label: 'Robot', emoji: '🤖', description: 'Tin heads with LED eyes, a speaker grille and an antenna, on a body of boxes and pipes.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT, map };
 })());

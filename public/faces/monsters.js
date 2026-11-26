@@ -213,5 +213,42 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'colour', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'accent', colors: colors(ACCENT, null) }],
   });
 
-  return { name: 'monsters', label: 'Monsters', emoji: '👹', description: 'Fuzzy, spiky and slimy creatures with fangs, horns and tentacle limbs.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  // the map: a bright, wobbly monster land. Every domain is a rocky hill with a cave in it, the base is the big lair (a hill with
+  // a huge toothy cave mouth and eyes peeping out), the ways are slime trails, and the web is a glowing crystal they gaze into (see map.js)
+  const map = (() => {
+    const GROUND = '#7a5aa8', GROUND_DARK = '#5a3e86', ROCK = ['#ff8a5a', '#4dc8a0', '#ffc84d', '#ff6ab0', '#6aa8ff', '#b88aff'], SLIME = '#9af04d', CRYSTAL = '#6af0ff';
+    const f = n => +n.toFixed(1);
+    const line = (w = 3) => `stroke="${INK}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
+    // a rounded hill with a dark cave mouth; spots and a little grass tuft
+    const hill = (r, seed, c, mouth) => { const rnd = rng(seed | 0), d = Faces.blob(r, seed, { squash: .62, wob: .22, bumps: 10 });
+      return `<path d="${d}" fill="#000" opacity=".18" transform="translate(4 8)"/><path d="${d}" fill="${c}" ${line()}/>`
+        + [...Array(4)].map(() => `<circle cx="${f((rnd() - .5) * r * 1.2)}" cy="${f((rnd() - .6) * r * .5)}" r="${f(3 + rnd() * 5)}" fill="#fff" opacity=".25"/>`).join('')
+        + `<path d="M${f(-mouth)} ${f(r * .12)}q0-${f(mouth * 1.5)} ${f(mouth)} ${f(-mouth * 1.5)}t${f(mouth)} ${f(mouth * 1.5)}z" fill="${MOUTH}" ${line(2.6)}/>`; };
+    const eyes = (x, y, k = 1) => `<circle cx="${f(x - 6 * k)}" cy="${f(y)}" r="${f(3.2 * k)}" fill="#ffe14d"/><circle cx="${f(x + 6 * k)}" cy="${f(y)}" r="${f(3.2 * k)}" fill="#ffe14d"/><circle cx="${f(x - 6 * k)}" cy="${f(y)}" r="${f(1.4 * k)}" fill="${INK}"/><circle cx="${f(x + 6 * k)}" cy="${f(y)}" r="${f(1.4 * k)}" fill="${INK}"/>`;
+    return {
+      backdrop: (w, h) => `<defs><radialGradient id="monsters-land" cx="50%" cy="50%" r="72%"><stop offset="0" stop-color="${GROUND}"/><stop offset="1" stop-color="${GROUND_DARK}"/></radialGradient>
+          <pattern id="monsters-pebbles" width="100" height="90" patternUnits="userSpaceOnUse"><circle cx="14" cy="18" r="4" fill="#fff" opacity=".12"/><circle cx="70" cy="50" r="6" fill="#000" opacity=".1"/><circle cx="40" cy="76" r="3" fill="#fff" opacity=".12"/>
+          <path d="M84 16l3-7 3 7M22 54l3-6 3 6" fill="none" stroke="${SLIME}" stroke-opacity=".5" stroke-width="2.2" stroke-linecap="round"/></pattern></defs>
+        <rect width="${w}" height="${h}" fill="url(#monsters-land)"/><rect width="${w}" height="${h}" fill="url(#monsters-pebbles)"/>`,
+      // the lair: a big hill with a toothy cave mouth and eyes peeping out of the dark
+      base: (seed) => hill(110, seed, '#5a8aff', 0)
+        + `<g transform="translate(0 -14)"><path d="M-46 22q0-62 46-62t46 62z" fill="${MOUTH}" ${line(3)}/>`
+        + `<path d="M-40 -6l8 12 8-14 8 14 8-16 8 16 8-14 8 14 8-12" fill="#fff" ${line(2)}/><path d="M-44 22l8-10 8 10 8-10 8 10" fill="#fff" ${line(2)}/>${eyes(0, -16, 1.6)}</g>`
+        + `<path d="M-70 -52l-8-26 18 16M70 -52l8-26-18 16" fill="#ffe14d" ${line(2.6)}/>`,
+      // a hill with a cave, in a colour of its own; sometimes a pair of eyes in the cave
+      place: (name, seed, n) => { const r = 60 + Math.min(n, 4) * 3, rnd = rng(seed | 0), c = ROCK[Math.floor(rnd() * ROCK.length)];
+        return hill(r, seed, c, 16) + (rnd() < .55 ? eyes(0, f(r * .12 - 12), .8) : '')
+          + (rnd() < .6 ? `<path d="M${f(r * .5)} ${f(-r * .3)}l-6-18 12 10 4-14 6 16" fill="${SLIME}" ${line(2)}/>` : ''); },
+      // a burrow: a little dome with a round door
+      building: (name, seed) => `<path d="M-14 8q0-24 14-24t14 24z" fill="${ROCK[(seed >>> 0) % ROCK.length]}" ${line(2.2)}/><circle cy="2" r="5.5" fill="${MOUTH}" ${line(1.6)}/>${eyes(0, 1, .35)}`,
+      // a slime trail with drips along it
+      route: (x1, y1, x2, y2) => { const mx = (x1 + x2) / 2 + (y2 - y1) * .14, my = (y1 + y2) / 2 - (x2 - x1) * .14;
+        return `<path d="M${x1} ${y1}Q${f(mx)} ${f(my)} ${x2} ${y2}" fill="none" stroke="${SLIME}" stroke-opacity=".55" stroke-width="12" stroke-linecap="round"/><path d="M${x1} ${y1}Q${f(mx)} ${f(my)} ${x2} ${y2}" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="3" stroke-dasharray="4 16" stroke-linecap="round"/>`; },
+      // a glowing crystal on a rock: they gaze into it to see far-off things
+      sea: () => `<ellipse cy="4" rx="34" ry="13" fill="#000" opacity=".18"/><path d="M-30 4q2-16 30-16t30 16q-12 10-30 10t-30-10z" fill="#8a7aa0" ${line(2.6)}/>`
+        + `<circle cy="-38" r="30" fill="${CRYSTAL}" opacity=".22"/><path d="M0 -76l16 26-6 36h-20l-6-36z" fill="${CRYSTAL}" ${line(2.6)}/><path d="M0 -76l-4 34 4 28M-16 -50l12 8 20-8" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1.8"/>`,
+    };
+  })();
+
+  return { name: 'monsters', label: 'Monsters', emoji: '👹', description: 'Fuzzy, spiky and slimy creatures with fangs, horns and tentacle limbs.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT, map };
 })());

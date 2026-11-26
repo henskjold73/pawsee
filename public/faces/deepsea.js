@@ -203,5 +203,49 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'skin', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'glow', colors: colors(GLOWS, null) }],
   });
 
-  return { name: 'deepsea', label: 'Deep sea', emoji: '🐙', description: 'Anglerfish, jellyfish and squid from the deep, with glowing lures and spots.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  // the map: the ocean floor at night. Every domain is a glowing reef, the base is a submarine resting on a rock, and the web is a sonar beacon (see map.js)
+  const map = (() => {
+    const ROCK = '#4a5870', ROCK_DARK = '#313c4e', SAND = '#3a3a4a', HULL = '#e0b040', HULL_DARK = '#a8802a', LIGHT = '#bff4ff';
+    const CORAL = ['#ff6f8a', '#ff9a4a', '#c86aff', '#5ae0c8', '#ffd04a'];
+    // a soft lumpy outline round 0,0: the same seed always gives the same shape
+    const blob = (r, seed, bumps = 12, wob = 0.2, squash = 0.62) => Faces.blob(r, seed, { bumps, wob, squash });
+    const mound = (r, seed) => `<ellipse rx="${r * 1.25}" ry="${r * .5}" cy="${r * .18}" fill="${SAND}" opacity=".7"/>`
+      + `<path d="${blob(r, seed)}" fill="${ROCK}" stroke="${INK}" stroke-width="3"/><path d="${blob(r * .7, seed + 4, 9, .25, .5)}" transform="translate(${-r * .12} ${-r * .12})" fill="${ROCK_DARK}" opacity=".6"/>`;
+    // a branching coral: a stem that forks twice, in one colour
+    const coral = (x, y, k, c, lean) => { const b = (x0, y0, dx, dy) => `M${f1(x0)} ${f1(y0)}q${f1(dx * .2)} ${f1(dy * .6)} ${f1(dx)} ${f1(dy)}`;
+      const top = [x + lean * 4 * k, y - 22 * k];
+      return `<path d="${b(x, y, lean * 4 * k, -22 * k)}${b(...top, -9 * k, -12 * k)}${b(...top, 9 * k, -14 * k)}${b(x + lean * 2 * k, y - 11 * k, -11 * k, -8 * k)}" fill="none" stroke="${INK}" stroke-width="${7 * k}" stroke-linecap="round"/>`
+        + `<path d="${b(x, y, lean * 4 * k, -22 * k)}${b(...top, -9 * k, -12 * k)}${b(...top, 9 * k, -14 * k)}${b(x + lean * 2 * k, y - 11 * k, -11 * k, -8 * k)}" fill="none" stroke="${c}" stroke-width="${4 * k}" stroke-linecap="round"/>`; };
+    const glowDot = (x, y, r, c) => `<circle cx="${f1(x)}" cy="${f1(y)}" r="${r}" fill="${c}" filter="url(#deepsea-map-glow)"/>`;
+    return {
+      backdrop: (w, h) => `<defs><linearGradient id="deepsea-abyss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#123a5a"/><stop offset=".55" stop-color="#0a1f36"/><stop offset="1" stop-color="#050d1c"/></linearGradient>
+        <filter id="deepsea-map-glow" x="-150%" y="-150%" width="400%" height="400%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <pattern id="deepsea-snow" width="70" height="90" patternUnits="userSpaceOnUse"><circle cx="12" cy="14" r="1.6" fill="#fff" opacity=".35"/><circle cx="48" cy="40" r="1.1" fill="#fff" opacity=".3"/><circle cx="30" cy="74" r="1.4" fill="#cfefff" opacity=".28"/><circle cx="62" cy="80" r=".9" fill="#fff" opacity=".25"/></pattern></defs>
+        <rect width="${w}" height="${h}" fill="url(#deepsea-abyss)"/><rect width="${w}" height="${h}" fill="url(#deepsea-snow)"/>
+        <path d="M0 ${h}V${h * .9}Q${w * .25} ${h * .86} ${w * .5} ${h * .9}T${w} ${h * .89}V${h}Z" fill="${SAND}" opacity=".55"/>`,
+      base: (seed) => mound(96, seed)
+        + `<g transform="translate(0 -30)"><path d="M-70 0q0-30 34-34h66q40 0 52 34q-12 34-52 34h-66q-34-4-34-34z" fill="${HULL}" stroke="${INK}" stroke-width="3"/>
+          <path d="M-62 14q30 16 120 6" fill="none" stroke="${HULL_DARK}" stroke-width="5" stroke-linecap="round"/>
+          <path d="M-18 -34v-20q0-8 8-8h24q8 0 8 8v20z" fill="${HULL}" stroke="${INK}" stroke-width="3"/><path d="M4 -62v-16h10" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
+          <path d="M-70 0l-14-12v24z" fill="${HULL_DARK}" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/>
+          ${[-36, -6, 24].map(x => `<circle cx="${x}" cy="-4" r="9" fill="${INK}"/>${glowDot(x, -4, 6, LIGHT)}`).join('')}
+          <path d="M82 -4l60 -22v44z" fill="${LIGHT}" opacity=".12"/></g>`,
+      place: (name, seed, n) => { const r = 62 + Math.min(n, 4) * 3, rnd = rng(seed | 0), c1 = CORAL[Math.floor(rnd() * CORAL.length)], c2 = CORAL[Math.floor(rnd() * CORAL.length)];
+        return mound(r, seed) + coral(-r * .62, -r * .1, .9, c1, -1) + coral(r * .6, -r * .05, .75, c2, 1) + (rnd() < .6 ? coral(r * .1, -r * .42, .6, c1, rnd() < .5 ? -1 : 1) : '')
+          + [...Array(4)].map(() => glowDot((rnd() - .5) * r * 1.4, (rnd() - .3) * r * .5, 2.4, CORAL[Math.floor(rnd() * CORAL.length)])).join(''); },
+      // a conch shell, lying on its side with a round door
+      building: () => `<path d="M-15 8q-4-18 10-22q18-4 20 10q1 12-12 14z" fill="#f2c8b0" stroke="${INK}" stroke-width="2.2" stroke-linejoin="round"/>
+        <path d="M-9 -4q6-8 14-4M-12 3q8-6 18-2" fill="none" stroke="#c88a7a" stroke-width="1.6" stroke-linecap="round"/><circle cx="6" cy="3" r="4.5" fill="${INK}"/>${glowDot(-15, -14, 2.2, LIGHT)}`,
+      // a trail of bubbles rising from the base to the reef
+      route: (x1, y1, x2, y2) => { const n = Math.max(4, Math.round(Math.hypot(x2 - x1, y2 - y1) / 26));
+        return [...Array(n)].map((_, i) => { const t = (i + .5) / n, wob = Math.sin(i * 1.7) * 8;
+          return `<circle cx="${f1(x1 + (x2 - x1) * t + wob)}" cy="${f1(y1 + (y2 - y1) * t)}" r="${2.4 + (i % 3)}" fill="none" stroke="${LIGHT}" stroke-opacity=".7" stroke-width="1.8"/>`; }).join(''); },
+      // a sonar beacon on a rock, pinging the surface
+      sea: () => mound(30, 11) + `<path d="M0 -10v-46" stroke="${INK}" stroke-width="5" stroke-linecap="round"/><path d="M0 -10v-46" stroke="#8a9ab0" stroke-width="2.5" stroke-linecap="round"/>`
+        + [20, 32, 44].map((r, i) => `<path d="M${-r} ${-56 - r * .3}q${r} ${-r * .9} ${r * 2} 0" fill="none" stroke="${LIGHT}" stroke-opacity="${.55 - i * .15}" stroke-width="2.4" stroke-linecap="round"/>`).join('')
+        + glowDot(0, -58, 6, '#7affd0'),
+    };
+  })();
+
+  return { name: 'deepsea', label: 'Deep sea', emoji: '🐙', description: 'Anglerfish, jellyfish and squid from the deep, with glowing lures and spots.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT, map };
 })());

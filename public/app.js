@@ -230,7 +230,8 @@ const demo = now => {
     demoStep = step;
   }
   all.sort((x, y) => demoOrder.indexOf(x.id) - demoOrder.indexOf(y.id));
-  return all.map(a => ({ type: { explore: 'explore', code: 'code-review', shell: 'task' }[a.kind] || 'general-purpose', project: 'pawsee', branch: 'demo', mode: 'sync', model: 'demo', ...a }));
+  const places = [null, { eco: 'nx', domain: 'booking', building: 'data-access' }, { eco: 'nx', domain: 'checkout', building: null }, { eco: 'nx', domain: 'search', building: 'feature' }];
+  return all.map((a, i) => ({ where: places[i % places.length], type: { explore: 'explore', code: 'code-review', shell: 'task' }[a.kind] || 'general-purpose', project: 'pawsee', branch: 'demo', mode: 'sync', model: 'demo', ...a }));
 };
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -290,7 +291,7 @@ function showFaces() {
 facesSel.onchange = () => {
   Faces.use(facesSel.value);
   showFaces();
-  if (last) render(last);
+  if (last) render(last); // the map follows too: a new kit, or the cards when the style has none
 };
 showFaces();
 
@@ -378,6 +379,25 @@ function applyTab() {
 }
 let tabWaiting = 0, lastCounts = null;
 
+// the data attributes the paw's CSS reads (walk, mood, hat, crown ...), shared by the cards and the map
+function pawState(el, a, now) {
+  // an agent we saw working has just finished: it jumps (CSS plays it three times from now); one that was already done when we first saw it just stands there
+  if (a.status === 'done') { if (el._status && el._status !== 'done') el.dataset.hop = '1'; } else delete el.dataset.hop;
+  el._status = a.status;
+  el.dataset.status = a.status;
+  const mood = PawMood.moodOf(a, now);
+  if (mood) el.dataset.mood = mood; else delete el.dataset.mood;
+  el.dataset.source = a.source || 'copilot';
+  el.toggleAttribute('data-main', a.type === 'main agent'); // the one in charge wears a crown
+  el.dataset.lv = LEVEL[a.effort] || 2;
+  // a failed attempt, and the agent is trying again: worried, more so the more it fails in a row
+  if (a.status === 'running' && a.worry > 0 && now - a.worryAt < 15e3) el.dataset.worried = Math.min(a.worry, 3); else delete el.dataset.worried;
+  // thinking about a skill / connector it just used: the round badge turns into a thought bubble with its logo
+  if (a.status === 'running' && a.brand && now - a.brandAt < 12e3) el.dataset.brand = a.brand; else delete el.dataset.brand;
+  if (a.zoomies) el.dataset.zoomies = a.zoomies; else delete el.dataset.zoomies;
+  el.dataset.kind = a.kind || 'think';
+}
+
 let bootId = null; // the server's start id: when it changes the server was restarted (an update, or `npm run dev`), so load the new page
 function render(snap) {
   if (snap.boot) { if (bootId && snap.boot !== bootId) return location.reload(); bootId = snap.boot; }
@@ -422,15 +442,8 @@ function render(snap) {
     if (reaction && !reduceMotion.matches) react(el, reaction);
     if (reaction && document.hidden) finishedAway = true;
     if (reaction === 'cheer') cheered++;
-    // an agent we saw working has just finished: it jumps (CSS plays it three times from now); one that was already done when we first saw it just stands there
-    if (a.status === 'done') { if (el._status && el._status !== 'done') el.dataset.hop = '1'; } else delete el.dataset.hop;
-    el._status = a.status;
-    el.dataset.status = a.status;
-    const mood = PawMood.moodOf(a, now);
-    if (mood) el.dataset.mood = mood; else delete el.dataset.mood;
-    el.dataset.source = a.source || 'copilot';
+    pawState(el, a, now);
     if (el._tool !== (a.source || 'copilot')) { el._tool = a.source || 'copilot'; el.querySelector('.toolwrap')?.remove(); el.insertAdjacentHTML('afterbegin', toolSvg(el._tool)); }
-    el.toggleAttribute('data-main', a.type === 'main agent'); // the one in charge wears a crown
     const faceKey = Faces.style.name + ':' + a.session + '#' + (taskOf.get(a.session) || 0); // a new task, or a new face style, puts on a new face
     if (el._face !== faceKey) { // a new task began: put on a new face (and, for sub-agents, the new parent portrait)
       if (el._face) {
@@ -441,7 +454,6 @@ function render(snap) {
       }
       el._face = faceKey;
     }
-    el.dataset.lv = LEVEL[a.effort] || 2;
     // one red cross under the paw for every failed attempt so far (the newest pops in)
     const fails = a.fails || 0, fx = el.querySelector('.fails');
     if (el._fails !== fails) {
@@ -452,15 +464,9 @@ function render(snap) {
         + (fails > shown ? `<span class="plus">+${fails - shown}</span>` : '');
       el._fails = fails;
     }
-    // a failed attempt, and the agent is trying again: worried, more so the more it fails in a row
-    if (a.status === 'running' && a.worry > 0 && now - a.worryAt < 15e3) el.dataset.worried = Math.min(a.worry, 3); else delete el.dataset.worried;
-    // thinking about a skill / connector it just used: the round badge turns into a thought bubble with its logo
-    if (a.status === 'running' && a.brand && now - a.brandAt < 12e3) el.dataset.brand = a.brand; else delete el.dataset.brand;
     const logo = a.brand?.startsWith('custom:') && snap.logos?.[a.brand.slice(7)];
     if (logo) { const im = el.querySelector('.b-custom image'); if (im.getAttribute('href') !== logo) im.setAttribute('href', logo); }
     el.classList.toggle('fading', a.label !== 'waiting on agents' && ['done', 'failed', 'lost', 'idle'].includes(a.status) && now - (a.endedAt ?? a.activityAt) > fadeMs - 15e3);
-    if (a.zoomies) el.dataset.zoomies = a.zoomies; else delete el.dataset.zoomies;
-    el.dataset.kind = a.kind || 'think';
     el.querySelector('.name').textContent = a.type === 'main agent' ? a.name : a.name.replace(/[-_]+/g, ' '); // agent names are slugs; a prompt title is already prose
     el.querySelector('.badge').textContent = a.label || LABEL[a.status];
     const tb = el.querySelector('.typebadge'), type = a.type && a.type !== 'general-purpose' ? a.type.replace(/[-_]+/g, ' ') : '';
@@ -471,7 +477,9 @@ function render(snap) {
     const done = a.status === 'done';
     tb.hidden = !type || done; tb.textContent = type;
     usedBadges(el.querySelector('.used'), done ? a.used : [], snap.logos);
-    el.querySelector('.sub').textContent = [a.project, a.branch].filter(Boolean).join(' · ');
+    const w = a.where; // the part of the codebase it last touched a file in
+    el.querySelector('.sub').innerHTML = (w ? `<span class="where" title="${esc(`Working in ${w.domain}${w.building ? ' › ' + w.building : ''} (${w.eco})`)}">${esc(w.domain)}${w.building ? `<small>${esc(w.building)}</small>` : ''}</span>` : '') +
+      esc([a.project, a.branch].filter(Boolean).join(' · '));
     el.title = [a.description, a.sessionName].filter(Boolean).join('\n');
     el.querySelector('.doing').innerHTML = doingHtml(a, el.classList.contains('open'));
     el.querySelector('.meta').innerHTML = metaHtml(a, now);
@@ -502,6 +510,7 @@ function render(snap) {
   if (chime) { playSound(chime); notifyDesktop(chime, agents); }
   if (agents.some(a => a.status === 'running')) finishedAway = false; // work resumed: the tick is stale
   applyTab();
+  PawMap.render(snap);
 }
 
 let last;

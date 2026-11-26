@@ -202,5 +202,37 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'sheet', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'glow', colors: colors(ACCENT, null) }],
   });
 
-  return { name: 'ghosts', label: 'Ghosts', emoji: '👻', secret: true, description: 'Friendly bedsheet ghosts with a wavy hem.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  // the map: a misty moor at night. Every domain is an old churchyard plot behind an iron fence, the base is a crooked haunted
+  // mansion, the ways are trails of floating wisps, and the web is an old wireless set picking up voices from far away (see map.js)
+  const map = (() => {
+    const MOOR = '#3a4a6a', MOOR_DARK = '#222a44', GRASS = '#4a6a5a', STONE = '#a8a6b8', WISP = '#cfe8ff', LIT = '#ffe08a', WALL = '#5a5470';
+    const f = n => +n.toFixed(1);
+    const line = (w = 2.6) => `stroke="${INK}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
+    const stone = (x, y, k, a) => `<g transform="translate(${f(x)} ${f(y)}) rotate(${f(a)}) scale(${k})"><path d="M-9 8v-16q0-9 9-9t9 9v16z" fill="${STONE}" ${line(2)}/><path d="M-4 -4h8" stroke="${INK}" stroke-opacity=".5" stroke-width="1.6"/></g>`;
+    return {
+      backdrop: (w, h) => `<defs><radialGradient id="ghosts-moor" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="${MOOR}"/><stop offset="1" stop-color="${MOOR_DARK}"/></radialGradient>
+          <pattern id="ghosts-mist" width="260" height="120" patternUnits="userSpaceOnUse"><path d="M10 40q30-14 60 0t60 0M140 96q30-12 60 0t50 0" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="10" stroke-linecap="round"/></pattern></defs>
+        <rect width="${w}" height="${h}" fill="url(#ghosts-moor)"/><rect width="${w}" height="${h}" fill="url(#ghosts-mist)"/>`,
+      // a crooked haunted mansion: leaning walls, a tall turret, lit windows, a gate
+      base: (seed) => `<path d="${Faces.blob(106, seed, { squash: .56 })}" fill="${GRASS}" ${line(2.6)}/>`
+        + `<g transform="translate(0 -6) skewX(-3)"><rect x="-60" y="-60" width="120" height="66" fill="${WALL}" ${line(2.8)}/><path d="M-68 -60l68-34 68 34z" fill="#3a3450" ${line(2.8)}/>`
+        + `<rect x="34" y="-120" width="28" height="74" fill="${WALL}" ${line(2.6)}/><path d="M30 -120l18-30 18 30z" fill="#3a3450" ${line(2.6)}/><rect x="42" y="-106" width="12" height="14" fill="${LIT}" ${line(1.8)}/>`
+        + `${[-44, -18, 8].map(x => `<rect x="${x}" y="-46" width="14" height="16" fill="${LIT}" ${line(1.8)}/>`).join('')}<path d="M-12 6v-24q0-10 12-10t12 10v24z" fill="${INK}"/></g>`,
+      // a churchyard plot: tombstones inside a little iron fence
+      place: (name, seed, n) => { const r = 60 + Math.min(n, 4) * 3, rnd = rng(seed | 0), d = Faces.blob(r, seed, { squash: .58, wob: .2 }), count = 3 + Math.floor(rnd() * 3);
+        const posts = [...Array(14)].map((_, i) => { const a = i / 14 * 2 * Math.PI; return `<path d="M${f(Math.cos(a) * r * .92)} ${f(Math.sin(a) * r * .54)}v-12" ${line(2)}/>`; }).join('');
+        return `<path d="${d}" fill="${GRASS}" ${line(2.6)}/>` + posts + [...Array(count)].map((_, i) => stone((i / Math.max(1, count - 1) - .5) * r * 1.1, (rnd() - .5) * r * .3, .8 + rnd() * .3, (rnd() - .5) * 18)).join(''); },
+      // a little stone tomb with a pointed roof
+      building: () => `<rect x="-11" y="-8" width="22" height="18" fill="${STONE}" ${line(2)}/><path d="M-14 -8l14-12 14 12z" fill="#8a88a0" ${line(2)}/><path d="M-4 10v-10h8v10z" fill="${INK}"/>`,
+      // a trail of floating wisps
+      route: (x1, y1, x2, y2) => { const n = Math.max(4, Math.round(Math.hypot(x2 - x1, y2 - y1) / 34));
+        return [...Array(n)].map((_, i) => { const t = (i + .5) / n; return `<circle cx="${f(x1 + (x2 - x1) * t)}" cy="${f(y1 + (y2 - y1) * t + Math.sin(i * 1.9) * 6)}" r="${3 + (i % 2)}" fill="${WISP}" opacity=".55"/>`; }).join(''); },
+      // an old wireless set on a stone, its aerial picking up voices
+      sea: () => `<g transform="scale(.75)"><ellipse cy="6" rx="32" ry="10" fill="${MOOR_DARK}"/><rect x="-26" y="-36" width="52" height="38" rx="8" fill="#8a5a3a" ${line(2.4)}/><circle cx="-8" cy="-17" r="11" fill="#d8c8a0" ${line(2)}/>`
+        + `<path d="M-14 -17h12M-14 -12h12M-14 -22h12" stroke="${INK}" stroke-opacity=".5" stroke-width="1.4"/><circle cx="14" cy="-24" r="4" fill="${GOLD}" ${line(1.4)}/><circle cx="14" cy="-10" r="4" fill="${GOLD}" ${line(1.4)}/>`
+        + `<path d="M10 -36l12-34" ${line(2.2)}/>` + [10, 18].map((r, i) => `<path d="M${22 - r * .7} ${-74 - r * .4}q${f(r * .7)} ${-r} ${f(r * 1.4)} 0" fill="none" stroke="${WISP}" stroke-opacity="${.8 - i * .3}" stroke-width="2.4" stroke-linecap="round"/>`).join('') + '</g>', // shrunk to stay inside the map's top edge
+    };
+  })();
+
+  return { name: 'ghosts', label: 'Ghosts', emoji: '👻', secret: true, description: 'Friendly bedsheet ghosts with a wavy hem.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT, map };
 })());

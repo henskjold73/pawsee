@@ -198,5 +198,39 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'fur', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'eyes and accents', colors: colors(ACCENT, null) }],
   });
 
-  return { name: 'cats', label: 'Cats', emoji: '🐱', description: 'Round-headed cats with pointed ears, whiskers and a tail that swishes.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  // the map: a house seen from above. Every domain is a rug with a cat bed on it, the base is a tall cat tree, the ways are trails of
+  // paw prints, and the web is a laptop (what else would a cat sit on to read the internet?) (see map.js)
+  const map = (() => {
+    const BOARD = '#d8a46a', BOARD_DARK = '#b8844a', RUGS = ['#e86a6a', '#6aa0e0', '#e8c04a', '#8ac07a', '#c08ae0', '#f0a0c0'], SISAL = '#d8c08a', CARPET = '#a07ac8';
+    const f = n => +n.toFixed(1);
+    const line = (w = 2.6) => `stroke="${INK}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
+    const rug = (r, seed, c) => { const d = Faces.blob(r, seed, { bumps: 16, wob: .06, squash: .6 });
+      return `<path d="${d}" fill="#000" opacity=".14" transform="translate(4 6)"/><path d="${d}" fill="${c}" ${line(3)}/><path d="${d}" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="3" stroke-dasharray="2 7" transform="scale(.82)"/><path d="${d}" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="10" transform="scale(.45)"/>`; };
+    const bed = (x, y, c) => `<g transform="translate(${f(x)} ${f(y)})"><ellipse rx="22" ry="13" fill="${c}" ${line(2.4)}/><ellipse rx="14" ry="7" cy="1" fill="#fff4e6"/></g>`;
+    const ball = (x, y) => `<g transform="translate(${f(x)} ${f(y)})"><circle r="8" fill="#e86a9a" ${line(2)}/><path d="M-6-3q6 4 12 0M-5 3q5-4 10 0" fill="none" stroke="${INK}" stroke-opacity=".5" stroke-width="1.2"/><path d="M7 3q14 6 8 16" fill="none" stroke="#e86a9a" stroke-width="2"/></g>`;
+    const print = (x, y, a) => `<g transform="translate(${f(x)} ${f(y)}) rotate(${f(a)})" fill="${INK}" opacity=".3"><ellipse rx="4" ry="3.4" cy="2"/><circle cx="-4" cy="-3" r="1.6"/><circle cx="0" cy="-4.4" r="1.6"/><circle cx="4" cy="-3" r="1.6"/></g>`;
+    return {
+      backdrop: (w, h) => `<defs><pattern id="cats-floor" width="160" height="36" patternUnits="userSpaceOnUse"><rect width="160" height="36" fill="${BOARD}"/><path d="M0 35.5H160M60 0V18M140 18V36M20 18H0" stroke="${BOARD_DARK}" stroke-width="2"/>
+          <path d="M6 9q30 -4 50 0M80 26q30 4 54 -2" fill="none" stroke="${BOARD_DARK}" stroke-opacity=".5" stroke-width="1.2"/></pattern></defs><rect width="${w}" height="${h}" fill="url(#cats-floor)"/>`,
+      // a cat tree on a round rug: a sisal post with platforms and a little house at the top
+      base: (seed) => rug(104, seed, CARPET)
+        + `<g transform="scale(.78)"><rect x="-9" y="-92" width="18" height="96" fill="${SISAL}" ${line(2.6)}/><path d="M-9 -80h18M-9 -64h18M-9 -48h18M-9 -32h18M-9 -16h18" stroke="#b89a5a" stroke-width="2"/>`
+        + `<ellipse cy="-36" cx="-34" rx="30" ry="10" fill="${CARPET}" ${line(2.4)}/><path d="M-9 -36h-20" stroke="${SISAL}" stroke-width="6"/>`
+        + `<ellipse cy="-58" cx="36" rx="28" ry="9" fill="${CARPET}" ${line(2.4)}/><path d="M9 -58h18" stroke="${SISAL}" stroke-width="6"/>`
+        + `<rect x="-30" y="-130" width="60" height="40" rx="10" fill="${CARPET}" ${line(2.6)}/><ellipse cy="-110" rx="13" ry="12" fill="${INK}"/>${ball(30, -40)}</g>`, // scaled to stay below the repo's name
+      // a rug with a cat bed, and sometimes a ball of yarn
+      place: (name, seed, n) => { const r = 62 + Math.min(n, 4) * 3, rnd = rng(seed | 0), c = RUGS[Math.floor(rnd() * RUGS.length)];
+        return rug(r, seed, c) + bed(-r * .45, -r * .12, RUGS[Math.floor(rnd() * RUGS.length)]) + (rnd() < .6 ? ball(r * .55, r * .1) : ''); },
+      // a cardboard box: the best house there is
+      building: () => `<path d="M-13 -4h26v16h-26z" fill="#c8945a" ${line(2)}/><path d="M-13 -4l-6-8h22l-3 8M13 -4l5-9h-15" fill="#d8a46a" ${line(1.8)}/><path d="M-5 4h10" stroke="#8a5a2a" stroke-width="1.6"/>`,
+      // a trail of paw prints
+      route: (x1, y1, x2, y2) => { const l = Math.hypot(x2 - x1, y2 - y1), n = Math.max(3, Math.round(l / 30)), a = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI + 90, nx = -(y2 - y1) / l * 7, ny = (x2 - x1) / l * 7;
+        return [...Array(n)].map((_, i) => { const t = (i + .5) / n, s = i % 2 ? 1 : -1; return print(x1 + (x2 - x1) * t + nx * s, y1 + (y2 - y1) * t + ny * s, a); }).join(''); },
+      // a laptop on the floor, open, warm and glowing: a cat's favourite seat
+      sea: () => `<ellipse cy="10" rx="40" ry="10" fill="#000" opacity=".12"/><path d="M-34 6l8-12h52l8 12z" fill="#b8bcc8" ${line(2.4)}/><path d="M-26 -6l4-40h44l4 40z" fill="#3a3e4a" ${line(2.4)}/>`
+        + `<path d="M-20 -10l3-30h34l3 30z" fill="#6ad0f0"/><path d="M-12 -30h20M-12 -22h14M-12 -14h18" stroke="#fff" stroke-opacity=".7" stroke-width="2"/>`,
+    };
+  })();
+
+  return { name: 'cats', label: 'Cats', emoji: '🐱', description: 'Round-headed cats with pointed ears, whiskers and a tail that swishes.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT, map };
 })());

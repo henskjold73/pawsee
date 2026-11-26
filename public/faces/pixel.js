@@ -206,5 +206,39 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'skin', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'hair colour', colors: colors(HAIR, null) }],
   });
 
-  return { name: 'pixel', label: 'Pixel', emoji: '👾', description: 'Eight-bit heads on a grid, every part a few rows of pixels.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  // the map: an eight-bit overworld on a grid. Every domain is a block of land with a pixel tree, the base is a little castle,
+  // the ways are dirt paths of square tiles, and the web is a tower with a blinking signal (see map.js). Every shape snaps to 8-unit pixels.
+  const map = (() => {
+    const P = 8, GRASS = '#5ab84a', GRASS_2 = '#4aa83e', LANDS = ['#7ad06a', '#e8d070', '#8ac8f0', '#d8a0e0'], DIRT = '#c8945a', STONE = '#b0b0c0', STONE_D = '#7a7a90', DARK = '#1e1e2a', LEAF = '#2a8a3a', SIGNAL = '#ff4a5a';
+    const px = (x, y, w, h, c) => `<rect x="${x * P}" y="${y * P}" width="${w * P}" height="${h * P}" fill="${c}"/>`;
+    const crisp = s => `<g shape-rendering="crispEdges">${s}</g>`;
+    // a lumpy pixel blob: every grid cell whose middle falls inside a seeded wobbly ellipse
+    const land = (r, seed, c) => { const rnd = rng(seed | 0), wob = [...Array(8)].map(() => .85 + rnd() * .25), cells = [], R = Math.ceil(r / P);
+      for (let y = -R; y <= R; y++) for (let x = -R; x <= R; x++) { const a = Math.atan2(y, x), k = wob[Math.floor(((a + Math.PI) / (2 * Math.PI)) * 8) % 8], dx = x * P / r, dy = y * P / (r * .62);
+        if (dx * dx + dy * dy <= k * k) cells.push([x, y]); }
+      const edge = cells.filter(([x, y]) => !cells.some(([a, b]) => a === x && b === y + 1));
+      return crisp(edge.map(([x, y]) => px(x, y + 1, 1, 1, DARK)).join('') + cells.map(([x, y]) => px(x, y, 1, 1, c)).join('')); };
+    const tree = (x, y) => crisp(px(x, y - 1, 1, 2, '#8a5a2a') + px(x - 1, y - 4, 3, 3, LEAF) + px(x, y - 5, 1, 1, LEAF) + px(x - 1, y - 4, 1, 1, '#4ab85a'));
+    return {
+      backdrop: (w, h) => `<defs><pattern id="pixel-grass" width="${P * 4}" height="${P * 4}" patternUnits="userSpaceOnUse">${px(0, 0, 4, 4, GRASS)}${px(1, 1, 1, 1, GRASS_2)}${px(3, 2, 1, 1, GRASS_2)}${px(0, 3, 1, 1, GRASS_2)}</pattern></defs>
+        <rect width="${w}" height="${h}" fill="url(#pixel-grass)" shape-rendering="crispEdges"/>`,
+      // a little castle: two towers with battlements, a wall, a gate and a flag
+      base: (seed) => land(104, seed, '#8ad07a') + tree(-11, 1) + tree(10, 0)
+        + '<g transform="scale(.75)">' + crisp(px(-6, -9, 12, 8, STONE) + px(-6, -10, 1, 1, STONE) + px(-4, -10, 1, 1, STONE) + px(-2, -10, 1, 1, STONE) + px(1, -10, 1, 1, STONE) + px(3, -10, 1, 1, STONE) + px(5, -10, 1, 1, STONE)
+          + px(-8, -13, 3, 12, STONE_D) + px(5, -13, 3, 12, STONE_D) + px(-8, -14, 1, 1, STONE_D) + px(-6, -14, 1, 1, STONE_D) + px(5, -14, 1, 1, STONE_D) + px(7, -14, 1, 1, STONE_D)
+          + px(-1, -5, 2, 4, DARK) + px(-7, -11, 1, 2, DARK) + px(6, -11, 1, 2, DARK) + px(0, -16, 1, 6, DARK) + px(1, -16, 3, 2, SIGNAL)) + '</g>', // scaled to stay below the repo's name
+      // a block of land with a pixel tree or two
+      place: (name, seed, n) => { const rnd = rng(seed | 0), c = LANDS[Math.floor(rnd() * LANDS.length)];
+        return land(60 + Math.min(n, 4) * 3, seed, c) + tree(-4, 0) + (rnd() < .6 ? tree(5, 1) : ''); },
+      // a pixel hut
+      building: (name, seed) => crisp(px(-2, -1, 4, 3, '#c87a4a') + px(-3, -2, 6, 1, '#a83a3a') + px(-2, -3, 4, 1, '#a83a3a') + px(-1, -4, 2, 1, '#a83a3a') + px(0, 0, 1, 2, DARK)),
+      // a dirt path of square tiles
+      route: (x1, y1, x2, y2) => { const n = Math.max(3, Math.round(Math.hypot(x2 - x1, y2 - y1) / (P * 2)));
+        return crisp([...Array(n)].map((_, i) => { const t = (i + .5) / n, x = Math.round((x1 + (x2 - x1) * t) / P), y = Math.round((y1 + (y2 - y1) * t) / P); return px(x - 1, y, 2, 1, DIRT); }).join('')); },
+      // a tower with a blinking signal at the top
+      sea: () => '<g transform="scale(.75)">' + crisp(px(-1, -9, 2, 9, STONE_D) + px(-2, -1, 4, 1, STONE_D) + px(-2, -10, 4, 1, DARK) + px(-1, -11, 2, 1, SIGNAL) + px(-3, -13, 1, 1, '#fff') + px(2, -13, 1, 1, '#fff') + px(-4, -14, 1, 1, '#fff') + px(3, -14, 1, 1, '#fff')) + '</g>', // scaled to stay inside the map's top edge
+    };
+  })();
+
+  return { name: 'pixel', label: 'Pixel', emoji: '👾', description: 'Eight-bit heads on a grid, every part a few rows of pixels.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT, map };
 })());

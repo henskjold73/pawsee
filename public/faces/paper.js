@@ -191,5 +191,35 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'paper', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'hair', colors: colors(HAIR, null) }],
   });
 
-  return { name: 'paper', label: 'Paper cutouts', emoji: '✂️', description: 'Construction-paper collage heads with googly eyes on pinned paper-puppet bodies.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  // the map: a collage on a sheet of craft paper. Every domain is a torn patch of coloured paper with a lollipop tree, the base is
+  // a pop-up paper house, the ways are dashed "cut here" lines, and the web is a paper aeroplane carrying messages (see map.js)
+  const map = (() => {
+    const SH = 'filter="url(#paper-map-shadow)"'; // the map's own copy of the shadow, so it never depends on a paw being drawn
+    const CRAFT = '#d8c4a0', PAPERS = ['#f28a9a', '#8ac0f0', '#f2d26a', '#9ad88a', '#c8a0e8', '#f2a86a'], TRUNK = '#8a6a4a';
+    const f = n => +n.toFixed(1);
+    const cut = (w = 1.6) => `stroke="${INK}" stroke-opacity=".35" stroke-width="${w}" stroke-linejoin="round"`;
+    const tree = (x, y, k, c) => `<g transform="translate(${f(x)} ${f(y)}) scale(${k})" ${SH}><rect x="-3" y="-22" width="6" height="22" fill="${TRUNK}"/><circle cy="-30" r="15" fill="${c}" ${cut()}/></g>`;
+    return {
+      backdrop: (w, h) => `<defs><filter id="paper-map-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="2" dy="3.5" stdDeviation="1.2" flood-color="#000" flood-opacity=".3"/></filter><pattern id="paper-fibres" width="120" height="120" patternUnits="userSpaceOnUse"><path d="M10 20l18 4M70 60l14-6M30 96l20 2M96 14l10 10M50 40l8 12" stroke="#a88a60" stroke-opacity=".35" stroke-width="1.2" stroke-linecap="round"/></pattern></defs>
+        <rect width="${w}" height="${h}" fill="${CRAFT}"/><rect width="${w}" height="${h}" fill="url(#paper-fibres)"/>`,
+      // a pop-up paper house: walls, a roof, a door and windows, each a separate cut-out
+      base: (seed) => `<path d="${Faces.blob(108, seed, { squash: .6, bumps: 22, wob: .08 })}" fill="${WHITE}" ${cut(1.8)} ${SH}/>`
+        + tree(-80, 10, 1.1, PAPERS[3]) + tree(82, 4, .9, PAPERS[3])
+        + `<g transform="translate(0 -6)" ${SH}><rect x="-50" y="-60" width="100" height="66" fill="${PAPERS[5]}" ${cut()}/><path d="M-62 -58l62-44 62 44z" fill="${PAPERS[0]}" ${cut()}/>`
+        + `<rect x="-12" y="-26" width="24" height="32" fill="${PAPERS[4]}" ${cut()}/><circle cx="6" cy="-10" r="2" fill="${BRASS}"/><rect x="-40" y="-46" width="18" height="16" fill="${PAPERS[1]}" ${cut()}/><rect x="22" y="-46" width="18" height="16" fill="${PAPERS[1]}" ${cut()}/></g>`,
+      // a torn patch of coloured paper with a tree or two
+      place: (name, seed, n) => { const r = 60 + Math.min(n, 4) * 3, rnd = rng(seed | 0), c = PAPERS[Math.floor(rnd() * PAPERS.length)];
+        return `<path d="${Faces.blob(r, seed, { squash: .6, bumps: 24, wob: .12 })}" fill="${c}" ${cut(1.8)} ${SH}/>`
+          + tree(-r * .55, -r * .08, .85, PAPERS[3]) + (rnd() < .6 ? tree(r * .6, r * .04, .7, PAPERS[(Math.floor(rnd() * 2) * 2 + 1) % PAPERS.length]) : ''); },
+      // a folded paper house
+      building: (name, seed) => `<g ${SH}><rect x="-11" y="-6" width="22" height="16" fill="${WHITE}" ${cut()}/><path d="M-14 -5l14-12 14 12z" fill="${PAPERS[(seed >>> 0) % PAPERS.length]}" ${cut()}/><rect x="-3" y="2" width="6" height="8" fill="${INK}" opacity=".6"/></g>`,
+      // a dashed "cut here" line
+      route: (x1, y1, x2, y2) => `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${INK}" stroke-opacity=".45" stroke-width="2.4" stroke-dasharray="10 7"/>`,
+      // a paper aeroplane in flight, with a dotted loop behind it
+      sea: () => `<path d="M-40 10q-10-30 20-30t10 20" fill="none" stroke="${INK}" stroke-opacity=".4" stroke-width="2" stroke-dasharray="3 5"/>`
+        + `<g transform="translate(6 -26) rotate(-14)" ${SH}><path d="M-26 0l52-14-30 22z" fill="${WHITE}" ${cut()}/><path d="M-4 8l30-22-22 26z" fill="#e8e4da" ${cut()}/></g>`,
+    };
+  })();
+
+  return { name: 'paper', label: 'Paper cutouts', emoji: '✂️', description: 'Construction-paper collage heads with googly eyes on pinned paper-puppet bodies.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT, map };
 })());

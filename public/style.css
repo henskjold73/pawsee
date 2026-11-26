@@ -36,6 +36,10 @@ h1{margin:0;font-size:28px;letter-spacing:-.02em}
 .dots span{animation:blink 1.2s infinite both}.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
 .meta{margin-top:8px;display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
 .tag{background:var(--bg);border-radius:8px;padding:1px 7px}
+.where{display:inline-flex;align-items:baseline;gap:4px;margin-right:6px;padding:0 7px;border-radius:99px;font-weight:600;color:var(--ink);background:hsl(var(--h,200) 70% 50% / .16)}
+.where::before{content:'📍';font-size:10px}
+.where small{font-weight:400;opacity:.7}
+.where small::before{content:'› '}
 
 /* paw animations */
 .paw .face,.paw .eye-open{transform-box:fill-box}
@@ -431,3 +435,30 @@ body.party .card .paw .arm{animation:j-a 1.26s ease-in-out 3 both}
 .eggnote{margin-left:10px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;vertical-align:middle;color:var(--ink);background:color-mix(in srgb,var(--wait) 22%,var(--card));border:1px solid var(--wait);white-space:nowrap}
 .eggnote[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){.paw .stick *{animation:none!important;transition:none}}
+
+/* map view (map.js): the world is an SVG from the face style's map kit; the paws are the cards' own paws (.card with its data attributes), placed over it */
+.map{display:none;max-width:1100px;margin:0 auto}
+body.mapmode .map{display:block}
+/* not display:none: the paws on the map use SVG filters and patterns (fixed ids) whose first copy is in a card, and a filter inside a
+   display:none element draws nothing, so a style like paper would lose its paws. The cards stay rendered, just invisible and out of the way. */
+body.mapmode #grid{visibility:hidden;position:absolute;left:0;top:0;width:1px;height:1px;overflow:hidden;pointer-events:none}
+.mapbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.mapbar .snd{margin-left:0}
+.map [hidden]{display:none}
+.mapnote{font-size:12px;color:var(--muted)}
+.mapworld{position:relative;margin:0 auto;border-radius:22px;overflow:hidden;border:2px solid var(--line)}
+.mapbg{display:block;width:100%;height:auto}
+.mapbg .mlab{fill:var(--ink);font-weight:700;paint-order:stroke;stroke:var(--bg);stroke-width:5px;stroke-linejoin:round}
+.mapagents{position:absolute;inset:0;pointer-events:none}
+.map .card.mpaw{all:unset;position:absolute;display:block;transform:translate(-50%,-88%);pointer-events:auto;
+  transition:left 1.6s ease-in-out,top 1.6s ease-in-out}
+/* walking west turns the character round, not the thought bubble or the z's (they sit outside the inner .bodyg) */
+.map .mpaw .paw .bodyg .bodyg{transform-box:view-box;transform-origin:50px 0;transition:transform .25s}
+.map .mpaw.west .paw .bodyg .bodyg{transform:scaleX(-1)}
+.map .mpaw .paw{display:block;width:100%;height:auto;margin:0;overflow:visible}
+.map .mpaw .fx-halo,.map .mpaw .fx-orbit{display:none} /* the thought bubble (.pbadge) stays: it says what each paw is doing */
+.map .mpaw.jump{cursor:pointer}
+.map .mname{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:-6px;white-space:nowrap;font-size:11px;font-weight:700;color:var(--ink);
+  padding:0 6px;border-radius:99px;background:color-mix(in srgb,var(--card) 85%,transparent)}
+@media (prefers-reduced-motion:reduce){.map .card.mpaw{transition:none}}
+@media (max-width:600px){.map .mname{display:none}} /* the map shrinks but the names would not: they crowd it; the tooltip still names each paw */

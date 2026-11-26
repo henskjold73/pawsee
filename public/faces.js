@@ -23,6 +23,14 @@
 //   derive(main, seed)               -> a smaller relative of the main spec, for sub-agents
 //   editor(spec)                     -> what faces.html needs to show pickers: { slots: [{key, options, fixed}], swatches: [{key, label, colors}] }
 //   DEFAULT                          -> a complete spec
+//   map (optional)                   -> a kit for the map view (map.js); a style without one shows the cards. Every function returns an SVG fragment
+//                                       drawn around 0,0 in map units (a place is about 120 across, a paw 76 tall):
+//     backdrop(w, h)                   the whole background, from 0,0 to w,h (sea, forest floor ...)
+//     base(seed)                       the base in the middle of a project, about 160 across, where agents wait and go home to
+//     place(name, seed, n)             one domain of the codebase, about 120 across; n is how many buildings will stand on it
+//     building(name, seed)             one building on a place (a lib, a layer, a sub-folder), about 30 across
+//     route(x1, y1, x2, y2)            the way from the base to a place, in absolute map units
+//     sea()                            the spot agents go to when they search or fetch the web
 // Faces.kin() is there so a style's derive() can be one call: see faces/pixel.js.
 // A style with `secret: true` is left out of styles() until Faces.unlock(name) has been called for it (or while it is the one in use).
 // A spec is plain JSON, owned by its style, so each style can have its own parts. Unknown parts are ignored, so a spec from one style can be handed to another.
@@ -32,11 +40,20 @@ const Faces = (() => {
   const PIECES = ['style', 'ears', 'head', 'extra', 'hair', 'eyes', 'brows', 'nose', 'mouth', 'hat', 'scale'];
   const MOOD_CLASSES = ['eye-closed', 'eye-happy', 'eye-sleepy', 'eye-x', 'dizzy-eyes', 'worry-eyes', 'worry-brows', 'brows', 'yawn', 'worry-mouth'];
   const BODY_CLASSES = ['stick', 'lower', 'upper', 'torso', 'thigh', 'shin', 'arm', 'fore', 'side-l', 'side-r'];
+  const MAP_FUNCTIONS = ['backdrop', 'base', 'place', 'building', 'route', 'sea'];
   const HAT_NAMES = ['pith', 'sailor', 'hard', 'beanie', 'bowler', 'party', 'chef', 'wizard'];
 
   // small seeded random and string hash, shared so that a style's agents keep their faces from one run to the next
   const rng = (seed) => { let a = (seed >>> 0) || 1; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
   const hash = (str) => { let h = 2166136261; for (const c of String(str)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+  // a soft lumpy outline round 0,0 for map kits (islands, rocks, clearings): r across, squashed in y for a top-down tilt; the same seed gives the same shape
+  const blob = (r, seed, { bumps = 12, wob = .18, squash = .7 } = {}) => {
+    const rnd = rng(seed | 0), f = n => n.toFixed(1), pts = [...Array(bumps)].map((_, i) => { const a = i / bumps * 2 * Math.PI, k = r * (1 - wob / 2 + rnd() * wob); return [Math.cos(a) * k, Math.sin(a) * k * squash]; });
+    const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+    let d = `M${mid(pts.at(-1), pts[0]).map(f).join(' ')}`;
+    pts.forEach((p, i) => { const m = mid(p, pts[(i + 1) % bumps]); d += `Q${f(p[0])} ${f(p[1])} ${f(m[0])} ${f(m[1])}`; });
+    return d + 'Z';
+  };
 
   // A relative of `main` for derive(): the tone key moves to the same or a neighbouring value, then each trait in `keep` (trait -> chance it is passed down)
   // is kept or swapped for another option from pool(trait); at least two always change, so a relative is never a copy.
@@ -64,6 +81,7 @@ const Faces = (() => {
     if (typeof s.label !== 'string' || !s.label) out.push('label is missing');
     for (const f of FUNCTIONS) if (typeof s[f] !== 'function') out.push(`${f} must be a function`);
     if (!s.DEFAULT || typeof s.DEFAULT !== 'object') out.push('DEFAULT must be a spec');
+    if (s.map != null) for (const f of MAP_FUNCTIONS) if (typeof s.map[f] !== 'function') out.push(`map.${f} must be a function`);
     return out;
   }
   function register(style) {
@@ -107,7 +125,7 @@ const Faces = (() => {
   };
 
   const api = {
-    register, use, problems, rng, hash, kin, MOOD_CLASSES, BODY_CLASSES, HAT_NAMES, PIECES, DEFAULT_STYLE,
+    register, use, problems, rng, hash, kin, blob, MOOD_CLASSES, BODY_CLASSES, HAT_NAMES, PIECES, DEFAULT_STYLE,
     styles: list, unlock, onUse: (fn) => { listeners.push(fn); },
     get style() { return active(); },
     get DEFAULT() { return active().DEFAULT; },
