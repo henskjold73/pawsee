@@ -49,7 +49,7 @@ Results are cached per folder in a `Map`, so each folder is checked on disk only
 **New file: `public/map.js`**, the engine. It knows nothing about any one style.
 
 - **World model:** for each `project`, an island group (`eco` doesn't matter here). The domains seen so far stay in a `Map` and are stored in `localStorage` (`pawsee-map-<project>`), so places don't disappear when no agent is there. Each domain also remembers its buildings.
-- **Layout:** the base is in the centre. Domains go into slots on growing rings around it. The slot index is found by hashing the domain name with `Faces.hash` and taking the next free slot, so "booking" lands in the same spot every time. With several projects, each project gets its own cluster, side by side. The SVG `viewBox` grows to fit.
+- **Layout:** the base is in the centre. Domains go into slots on growing rings around it. The slot index is found by hashing the domain name with `Faces.hash` and taking the next free slot, so "booking" lands in the same spot every time. A map is one repo's world, so it shows one repo at a time: the busiest one, unless you've picked another in the repo menu above the map (remembered). A note says how many agents are working in other repos; the cards always show every repo. The SVG `viewBox` grows to fit.
 - **Where each agent stands:**
   - `status` waiting, idle or failed, or `kind` ask → **base** (the waiting ones queue up on the dock)
   - `kind` web → the kit's `sea` spot (a lighthouse or open water)

@@ -106,6 +106,12 @@ To swap, pick a style from the **🙂 menu** in the header (it appears when more
 To make a new style, copy `public/faces/cel.js` to `public/faces/<name>.js`, change `name`, and redraw the parts. The contract (what a style has to provide: the head and its parts, the mood faces, the hats, the **body** and the **crown**, plus `random`, `derive` and `editor`) is described at the top of `public/faces.js`. Then add a `<script src="faces/<name>.js">` line to `index.html` and `faces.html`, and an entry to the asset list in `scripts/build-binary.mjs`.
 `npm test` loads every file in `public/faces/` and checks it against the contract, so you find out straight away if a piece is missing.
 
+#### Map view
+
+Styles that have a map can show the agents on it instead of as cards: click **🗺 Map** in the header, and **▦ Cards** to go back (the choice is remembered). So far `tiki` has one: every part of the codebase is a little island round a home island with a longhouse, and the agents paddle to the island they are working in. Waiting, napping and finished agents go home to the longhouse, and web searches go out to the torch on the rock. With any other style the button is greyed out and you get the cards.
+
+The parts of a codebase come from the files the agents touch: an Nx lib (or its `scope:` tag), a .NET project (`Acme.Booking.Api` is *Booking*), a React page or feature folder, a Django app or Python package, or else the first folder that isn't `src`, `lib` or `app`. The same name shows as a 📍 pill on the card. A map is one repo's world, so it shows one repo at a time (the busiest, or the one you pick above the map); the cards show them all. A style gets a map by adding a `map` kit next to its faces; what a kit draws is described at the top of `public/faces.js`.
+
 Agents have moods too: sleepy-eyed just after napping off and deeply asleep (slow breathing, extra z's) after two minutes, worried (sweat drops) when an attempt fails, and dizzy (spiral eyes, circling stars) after lots of failed attempts in a row.
 When an agent that was running finishes, it does a happy jump with confetti; when it fails, it flops over.
 Sounds are off by default: click the "Sound off" button next to the version to switch on a soft chime when something needs you and another when the last working agent finishes (made in the browser, no audio files). They are off again every time you refresh the page.
