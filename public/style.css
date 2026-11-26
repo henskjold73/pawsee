@@ -450,10 +450,11 @@ body.mapmode #grid{display:none}
 .mapagents{position:absolute;inset:0;pointer-events:none}
 .map .card.mpaw{all:unset;position:absolute;display:block;transform:translate(-50%,-88%);pointer-events:auto;
   transition:left 1.6s ease-in-out,top 1.6s ease-in-out}
-.map .mpaw .flip{transition:transform .25s}
-.map .mpaw.west .flip{transform:scaleX(-1)}
+/* walking west turns the character round, not the thought bubble or the z's (they sit outside the inner .bodyg) */
+.map .mpaw .paw .bodyg .bodyg{transform-box:view-box;transform-origin:50px 0;transition:transform .25s}
+.map .mpaw.west .paw .bodyg .bodyg{transform:scaleX(-1)}
 .map .mpaw .paw{display:block;width:100%;height:auto;margin:0;overflow:visible}
-.map .mpaw .pbadge,.map .mpaw .fx-halo,.map .mpaw .fx-orbit{display:none}
+.map .mpaw .fx-halo,.map .mpaw .fx-orbit{display:none} /* the thought bubble (.pbadge) stays: it says what each paw is doing */
 .map .mpaw.jump{cursor:pointer}
 .map .mname{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:-6px;white-space:nowrap;font-size:11px;font-weight:700;color:var(--ink);
   padding:0 6px;border-radius:99px;background:color-mix(in srgb,var(--card) 85%,transparent)}
