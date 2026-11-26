@@ -198,5 +198,33 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'glass', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'hair', colors: colors(HAIR, null) }],
   });
 
-  return { name: 'glass', label: 'Stained glass', emoji: '🪟', description: 'Stained-glass window heads of tinted panes held in thick dark lead.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  // the map: one great window of coloured glass. Every domain is a small rose window, the base is the big rose window in the middle,
+  // the ways are bands of lead, and the web is a bell that rings out far and wide (see map.js)
+  const map = (() => {
+    const PANES = ['#c0283a', '#2a5ab0', '#e8b830', '#2a9a6a', '#8a3a9a', '#e8702a', '#4ab0d0'], BACK = '#2a3a5a';
+    const f = n => +n.toFixed(1);
+    const lead = (w = 3.4) => `stroke="${LEAD}" stroke-width="${w}" stroke-linejoin="round"`;
+    // a rose window: rings of petals round a hub, each pane tinted, all held in lead; squashed for the tilt of the map
+    const rose = (r, seed, petals) => { const rnd = rng(seed | 0), c1 = PANES[Math.floor(rnd() * PANES.length)], c2 = PANES[Math.floor(rnd() * PANES.length)], c3 = PANES[Math.floor(rnd() * PANES.length)];
+      const ring = (r0, r1, c, off) => [...Array(petals)].map((_, i) => { const a0 = (i + off) / petals * 2 * Math.PI, a1 = (i + 1 + off) / petals * 2 * Math.PI, p = (a, r) => `${f(Math.cos(a) * r)} ${f(Math.sin(a) * r * .64)}`;
+        return `<path d="M${p(a0, r0)}L${p(a0, r1)}A${f(r1)} ${f(r1 * .64)} 0 0 1 ${p(a1, r1)}L${p(a1, r0)}A${f(r0)} ${f(r0 * .64)} 0 0 0 ${p(a0, r0)}Z" fill="${i % 2 ? c : c3}" ${lead(2.6)}/>`; }).join('');
+      return `<ellipse rx="${f(r + 8)}" ry="${f((r + 8) * .64)}" fill="${LEAD}"/>` + ring(r * .55, r, c1, 0) + ring(r * .25, r * .55, c2, .5)
+        + `<ellipse rx="${f(r * .25)}" ry="${f(r * .16)}" fill="${GOLD}" ${lead(2.6)}/><ellipse rx="${f(r)}" ry="${f(r * .64)}" fill="url(#glass-map-sheen)"/>`; };
+    return {
+      backdrop: (w, h) => `<defs><linearGradient id="glass-map-sheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient>
+          <pattern id="glass-quarries" width="44" height="44" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="44" height="44" fill="${BACK}"/><rect x="2" y="2" width="40" height="40" fill="#3a5078"/><path d="M0 0H44V44" fill="none" stroke="${LEAD}" stroke-width="4"/></pattern></defs>
+        <rect width="${w}" height="${h}" fill="url(#glass-quarries)"/>`,
+      base: (seed) => rose(108, seed, 12),
+      place: (name, seed, n) => rose(60 + Math.min(n, 4) * 3, seed, 8),
+      // a tall lancet pane with a pointed top
+      building: (name, seed) => `<path d="M-9 12v-20q0-12 9-16q9 4 9 16v20z" fill="${PANES[(seed >>> 0) % PANES.length]}" ${lead(2.4)}/><path d="M-9 0h18M0 -24v36" ${lead(1.8)}/>`,
+      // a band of lead with a gold edge
+      route: (x1, y1, x2, y2) => `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${GOLD}" stroke-opacity=".7" stroke-width="12" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="${LEAD}" stroke-width="7" stroke-linecap="round"/>`,
+      // a bell in a gold pane, ringing out
+      sea: () => `<ellipse cy="-30" rx="38" ry="38" fill="${LEAD}"/><ellipse cy="-30" rx="33" ry="33" fill="${PANES[6]}"/><path d="M-16 -16q0-30 16-34q16 4 16 34l4 6h-40z" fill="${GOLD}" ${lead(2.6)}/>`
+        + `<circle cy="-8" r="4" fill="${GOLD}" ${lead(2)}/><path d="M-26 -50q-6 10 0 20M26 -50q6 10 0 20" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="2.4" stroke-linecap="round"/>`,
+    };
+  })();
+
+  return { name: 'glass', label: 'Stained glass', emoji: '🪟', description: 'Stained-glass window heads of tinted panes held in thick dark lead.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT, map };
 })());

@@ -199,6 +199,7 @@ Faces.register((() => {
   // the map: a patchwork quilt. Every domain is a felt patch sewn on with running stitch, the base is a wicker sewing basket,
   // the ways are strands of yarn, and the web is a tangled ball of yarn (see map.js)
   const map = (() => {
+    const KNIT = 'url(#knit-map-stitch)'; // the map's own copy of the stitch, so it never depends on a paw being drawn
     const QUILT = ['#f2d8c8', '#d8e4f0', '#e8e0c4', '#e2d4ea', '#d4e8d4'], FELT = ['#e8706a', '#6a9ad8', '#e8b84a', '#8ac06a', '#b08ad8', '#e88ab0'];
     const WICKER = '#c8944a', WICKER_DARK = '#8a5e2a';
     const f = n => +n.toFixed(1);
@@ -207,10 +208,10 @@ Faces.register((() => {
     const ball = (x, y, r, c) => `<g transform="translate(${f(x)} ${f(y)})"><circle r="${r}" fill="${c}" stroke="${INK}" stroke-width="2.4"/><circle r="${r}" fill="${KNIT}"/>`
       + `<path d="M${f(-r * .8)} ${f(-r * .3)}q${f(r * .8)} ${f(r * .6)} ${f(r * 1.6)} 0M${f(-r * .6)} ${f(r * .5)}q${f(r * .7)} ${f(-r * .7)} ${f(r * 1.3)} ${f(-r * .2)}M${f(-r * .2)} ${f(-r * .9)}q${f(r * .5)} ${f(r * .9)} ${f(r * .1)} ${f(r * 1.8)}" fill="none" stroke="${THREAD}" stroke-opacity=".5" stroke-width="1.6"/></g>`;
     return {
-      backdrop: (w, h) => `<defs><pattern id="knitted-quilt" width="240" height="240" patternUnits="userSpaceOnUse">
+      backdrop: (w, h) => `<defs><pattern id="knit-map-stitch" width="6" height="5" patternUnits="userSpaceOnUse"><path d="M.6 .4L3 4.2L5.4 .4" fill="none" stroke="#000" stroke-opacity=".16" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></pattern><pattern id="knitted-quilt" width="240" height="240" patternUnits="userSpaceOnUse">
           ${[[0, 0, 0], [120, 0, 1], [0, 120, 2], [120, 120, 3]].map(([x, y, i]) => `<rect x="${x}" y="${y}" width="120" height="120" fill="${QUILT[i]}"/>`).join('')}
           <path d="M0 0H240M0 120H240M0 0V240M120 0V240" stroke="#a88a8a" stroke-width="2.4" stroke-dasharray="7 6"/><path d="M30 30l60 60M90 30l-60 60M150 150l60 60M210 150l-60 60" stroke="#fff" stroke-opacity=".35" stroke-width="2"/>
-          <rect x="120" y="0" width="120" height="120" fill="url(#knit-stitch)"/><rect x="0" y="120" width="120" height="120" fill="url(#knit-stitch)"/></pattern></defs>
+          <rect x="120" y="0" width="120" height="120" fill="url(#knit-map-stitch)"/><rect x="0" y="120" width="120" height="120" fill="url(#knit-map-stitch)"/></pattern></defs>
         <rect width="${w}" height="${h}" fill="url(#knitted-quilt)"/>`,
       // a wicker sewing basket full of yarn balls, with knitting needles stuck in
       base: () => `<ellipse cy="46" rx="112" ry="30" fill="#000" opacity=".12"/>`

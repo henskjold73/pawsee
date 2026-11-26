@@ -8,17 +8,7 @@ const PawMap = (() => {
   const MAX_PLACES = 36, MAX_BUILDINGS = 6;
   const ROAM_MS = 1600; // how long a walk between two spots takes
 
-  // a plain kit to build against: circles and labels. shortcut: only with ?plainmap, remove once enough styles have their own kit
-  const PLAIN = {
-    backdrop: (w, h) => `<rect width="${w}" height="${h}" fill="var(--bg)"/>`,
-    base: () => `<circle r="70" fill="var(--card)" stroke="var(--muted)" stroke-width="3"/><text y="6" text-anchor="middle" font-size="22">🏠</text>`,
-    place: () => `<circle r="60" fill="var(--card)" stroke="var(--line)" stroke-width="3"/>`,
-    building: () => `<rect x="-11" y="-11" width="22" height="22" rx="4" fill="var(--line)"/>`,
-    route: (x1, y1, x2, y2) => `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="var(--line)" stroke-width="4" stroke-dasharray="2 10" stroke-linecap="round"/>`,
-    sea: () => `<circle r="34" fill="none" stroke="var(--muted)" stroke-dasharray="4 6" stroke-width="2"/><text y="8" text-anchor="middle" font-size="24">🌐</text>`,
-  };
-  const plainOk = new URLSearchParams(location.search).has('plainmap');
-  const kit = () => Faces.style.map || (plainOk ? PLAIN : null);
+  const kit = () => Faces.style.map || null; // a style without a kit shows the cards
 
   // ---- the toggle: Map or Cards, remembered; a style without a map shows the cards ----
   let want = false;
@@ -197,5 +187,5 @@ const PawMap = (() => {
     for (const [key, el] of paws) if (!seen.has(key)) { el.remove(); paws.delete(key); }
   }
 
-  return { render, plain: PLAIN };
+  return { render };
 })();

@@ -205,5 +205,40 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'pumpkin', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'candle glow', colors: colors(GLOW, null) }],
   });
 
-  return { name: 'halloween', label: 'Halloween', emoji: '🎃', description: 'Jack-o\'-lantern pumpkins with carved, glowing faces, on scarecrow bodies.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  // the map: a farm on Halloween night. Every domain is a pumpkin patch in a field, the base is a giant jack-o'-lantern house,
+  // the ways are dirt tracks between fence posts, and the web is a bubbling cauldron for seeing far-off things (see map.js)
+  const map = (() => {
+    const FIELD = '#3a3048', DIRT = '#5a4030', DIRT_DARK = '#3e2a20', PUMPKIN = '#f28a2a', PUMPKIN_DARK = '#c8601a', GLOW = '#ffd24a', BREW = '#8af04a';
+    const f = n => +n.toFixed(1);
+    const line = (w = 2.6) => `stroke="${INK}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
+    const pumpkin = (x, y, k, lit) => `<g transform="translate(${f(x)} ${f(y)}) scale(${k})"><path d="M-14 0q-6-14 4-20q10-4 10 0q0-4 10 0q10 6 4 20q-4 6-14 6t-14-6z" fill="${PUMPKIN}" ${line(2.2)}/>`
+      + `<path d="M0 -20q-6 10 0 26M0 -20q6 10 0 26" fill="none" stroke="${PUMPKIN_DARK}" stroke-width="1.8"/><path d="M0 -20q-2-6 3-9" fill="none" stroke="${STALK}" stroke-width="3" stroke-linecap="round"/>`
+      + (lit ? `<path d="M-8 -12l3-4 3 4zM2 -12l3-4 3 4zM-8 -4q8 6 16 0l-4 2-4-2-4 2z" fill="${GLOW}"/>` : '') + '</g>';
+    return {
+      backdrop: (w, h) => `<defs><radialGradient id="halloween-night" cx="50%" cy="40%" r="80%"><stop offset="0" stop-color="#4a3a5a"/><stop offset="1" stop-color="#1e1428"/></radialGradient>
+          <pattern id="halloween-rows" width="140" height="28" patternUnits="userSpaceOnUse"><path d="M0 14q35-6 70 0t70 0" fill="none" stroke="#000" stroke-opacity=".18" stroke-width="5"/></pattern></defs>
+        <rect width="${w}" height="${h}" fill="url(#halloween-night)"/><rect width="${w}" height="${h}" fill="url(#halloween-rows)"/>`,
+      // a giant carved pumpkin with a door and lit windows, and a crooked chimney
+      base: (seed) => `<path d="${Faces.blob(112, seed, { squash: .58 })}" fill="${DIRT}" ${line(2.6)}/>` + pumpkin(-90, 10, 1.1, true) + pumpkin(92, 4, .9, false)
+        + `<g transform="translate(0 -10)"><path d="M-70 10q-14-50 14-70q26-16 56-6q30-10 56 6q28 20 14 70q-16 22-70 22t-70-22z" fill="${PUMPKIN}" ${line(3)}/>`
+        + `<path d="M0 -66q-22 30 0 96M0 -66q22 30 0 96M-38 -54q-20 40 0 82M38 -54q20 40 0 82" fill="none" stroke="${PUMPKIN_DARK}" stroke-width="2.6"/>`
+        + `<path d="M0 -66q-4-14 8-22" fill="none" stroke="${STALK}" stroke-width="7" stroke-linecap="round"/><path d="M-12 30v-22q0-12 12-12t12 12v22z" fill="${INK}"/>`
+        + `<path d="M-46 -24l10-14 10 14zM26 -24l10-14 10 14z" fill="${GLOW}" ${line(2)}/><path d="M-8 -16l4-8 4 8 4-8 4 8" fill="none" stroke="${GLOW}" stroke-width="3"/></g>`,
+      // a pumpkin patch: dirt with curling vines and a few pumpkins, one of them carved and lit
+      place: (name, seed, n) => { const r = 60 + Math.min(n, 4) * 3, rnd = rng(seed | 0), count = 3 + Math.floor(rnd() * 3);
+        return `<path d="${Faces.blob(r, seed, { squash: .58, wob: .2 })}" fill="${DIRT}" ${line(2.6)}/><path d="${Faces.blob(r * .8, seed + 2, { squash: .5 })}" fill="none" stroke="${DIRT_DARK}" stroke-width="3" stroke-dasharray="14 10"/>`
+          + `<path d="M${f(-r * .7)} ${f(r * .1)}q${f(r * .3)} ${f(-r * .4)} ${f(r * .6)} ${f(-r * .1)}t${f(r * .7)} 0" fill="none" stroke="${LEAF}" stroke-width="3"/>`
+          + [...Array(count)].map((_, i) => pumpkin((i / (count - 1) - .5) * r * 1.3, (rnd() - .4) * r * .4, .7 + rnd() * .35, i === 1)).join(''); },
+      // a crooked tombstone
+      building: (name, seed) => `<path d="M-10 10v-18q0-10 10-10t10 10v18z" fill="#8a8698" ${line(2)} transform="rotate(${((seed >>> 0) % 14) - 7})"/><path d="M-4 -4h8M0 -8v10" stroke="${INK}" stroke-opacity=".5" stroke-width="1.6"/>`,
+      // a dirt track with fence posts along it
+      route: (x1, y1, x2, y2) => `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${DIRT}" stroke-opacity=".8" stroke-width="12" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#6a4a30" stroke-width="5" stroke-dasharray="3 24"/>`,
+      // a witch's cauldron, bubbling green
+      sea: () => `<ellipse cy="6" rx="34" ry="9" fill="#000" opacity=".2"/><path d="M-20 4l-6 8M20 4l6 8M0 6v8" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`
+        + `<path d="M-30 -24q-4 30 30 30t30-30z" fill="#2a2434" ${line(2.6)}/><ellipse cy="-24" rx="30" ry="8" fill="${BREW}" ${line(2.4)}/>`
+        + `<circle cx="-10" cy="-30" r="4" fill="${BREW}" ${line(1.4)}/><circle cx="8" cy="-40" r="5" fill="${BREW}" ${line(1.4)}/><circle cx="-2" cy="-54" r="3" fill="${BREW}" ${line(1.2)}/><circle cy="-30" r="34" fill="${BREW}" opacity=".12"/>`,
+    };
+  })();
+
+  return { name: 'halloween', label: 'Halloween', emoji: '🎃', description: 'Jack-o\'-lantern pumpkins with carved, glowing faces, on scarecrow bodies.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT, map };
 })());

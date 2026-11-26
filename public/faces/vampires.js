@@ -194,5 +194,40 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'pallor', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'hair', colors: colors(HAIR, null) }],
   });
 
-  return { name: 'vampires', label: 'Vampires', emoji: '🧛', description: 'Pale, gaunt vampires with red eyes, fangs and a flowing cape.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  // the map: a castle's grounds by moonlight. Every domain is a candlelit courtyard with a coffin, the base is the castle keep,
+  // the ways are red carpets, and the web is a belfry full of bats, who find far-off things by echo (see map.js)
+  const map = (() => {
+    const STONE = '#4a4458', STONE_DARK = '#2e2a3a', FLAG = '#6a6478', CANDLE = '#f2e8c8', FLAME = '#ffb43a', WOOD = '#4a2a22', MOON = '#f4eccf';
+    const f = n => +n.toFixed(1);
+    const line = (w = 2.6) => `stroke="${INK}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
+    // an octagon of flagstones seen at a tilt
+    const court = (r) => { const pts = [...Array(8)].map((_, i) => { const a = (i + .5) / 8 * 2 * Math.PI; return `${f(Math.cos(a) * r)} ${f(Math.sin(a) * r * .6)}`; }).join('L');
+      return `<path d="M${pts}Z" fill="${STONE_DARK}" transform="translate(0 7)"/><path d="M${pts}Z" fill="${FLAG}" ${line(3)}/><path d="M${pts}Z" fill="url(#vampires-flags)"/>`; };
+    const candle = (x, y, k = 1) => `<g transform="translate(${f(x)} ${f(y)}) scale(${k})"><circle cy="-22" r="10" fill="${FLAME}" opacity=".25"/><rect x="-3" y="-16" width="6" height="16" fill="${CANDLE}" ${line(1.6)}/><path d="M0 -26q4 5 0 9q-4-4 0-9z" fill="${FLAME}"/></g>`;
+    const coffin = (x, y, k = 1, a = 0) => `<g transform="translate(${f(x)} ${f(y)}) rotate(${a}) scale(${k})"><path d="M-8 -24l-6 8 4 26h20l4-26-6-8z" fill="${WOOD}" ${line(2.2)}/><path d="M0 -14v14M-5 -8h10" stroke="${GOLD}" stroke-width="2"/></g>`;
+    const tower = (x, w, h) => `<rect x="${f(x - w / 2)}" y="${f(-h)}" width="${w}" height="${h}" fill="${STONE}" ${line(2.6)}/><path d="M${f(x - w / 2 - 4)} ${f(-h)}l${f(w / 2 + 4)} ${f(-w * .9)}l${f(w / 2 + 4)} ${f(w * .9)}z" fill="${STONE_DARK}" ${line(2.6)}/><path d="M${f(x - 3)} ${f(-h + 14)}h6v10h-6z" fill="${RED}"/>`;
+    return {
+      backdrop: (w, h) => `<defs><radialGradient id="vampires-night" cx="30%" cy="20%" r="90%"><stop offset="0" stop-color="#3a3060"/><stop offset="1" stop-color="#140e22"/></radialGradient>
+          <pattern id="vampires-flags" width="34" height="22" patternUnits="userSpaceOnUse"><path d="M0 .5H34M.5 0V11M17 11V22M0 11H34" stroke="${STONE_DARK}" stroke-opacity=".6" stroke-width="1.6"/></pattern>
+          <pattern id="vampires-grass" width="90" height="70" patternUnits="userSpaceOnUse"><path d="M10 20l2-6 2 6M60 50l2-6 2 6M40 64l2-5 2 5" fill="none" stroke="#5a7a5a" stroke-opacity=".5" stroke-width="1.4"/></pattern></defs>
+        <rect width="${w}" height="${h}" fill="url(#vampires-night)"/><rect width="${w}" height="${h}" fill="url(#vampires-grass)"/><circle cx="${f(w * .86)}" cy="70" r="34" fill="${MOON}" opacity=".85"/><circle cx="${f(w * .86)}" cy="70" r="54" fill="${MOON}" opacity=".08"/>`,
+      // the keep: a wide wall with a gate and three pointed towers with red-lit windows
+      base: () => court(108) + `<g transform="translate(0 -12)">${tower(-58, 30, 84)}${tower(58, 30, 84)}<rect x="-44" y="-70" width="88" height="70" fill="${STONE}" ${line(2.8)}/>
+          <path d="M-44 -70v-8h10v8h10v-8h10v8h10v-8h10v8h10v-8h10v8h10v-8h10v8" fill="none" ${line(2.4)}/>${tower(0, 30, 92)}<path d="M-14 0v-28q0-14 14-14t14 14v28z" fill="${INK}"/>
+          <path d="M-30 -52h8v12h-8zM22 -52h8v12h-8z" fill="${RED}"/></g>`,
+      // a courtyard with a coffin and candles round it
+      place: (name, seed, n) => { const r = 60 + Math.min(n, 4) * 3, rnd = rng(seed | 0);
+        return court(r) + coffin(-r * .42, -r * .02, .9, f((rnd() - .5) * 30)) + candle(r * .5, -r * .18) + candle(r * .66, r * .08, .8) + (rnd() < .5 ? candle(-r * .72, r * .1, .8) : ''); },
+      // a small standing coffin
+      building: () => coffin(0, 8, .7),
+      // a red carpet runner
+      route: (x1, y1, x2, y2) => `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${GOLD}" stroke-opacity=".7" stroke-width="15"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="${DARKRED}" stroke-width="11"/>`,
+      // a belfry with bats flying round it
+      sea: () => { const bat = (x, y, k) => `<path transform="translate(${x} ${y}) scale(${k})" d="M0 0q-6-8-14-6q4 4 2 8q-4-2-8 0q8 2 10 6q4-4 10-4q6 0 10 4q2-4 10-6q-4-2-8 0q-2-4 2-8q-8-2-14 6z" fill="${INK}"/>`;
+        return `<ellipse cy="6" rx="30" ry="10" fill="${STONE_DARK}"/><rect x="-14" y="-62" width="28" height="64" fill="${STONE}" ${line(2.4)}/><path d="M-18 -62l18-24 18 24z" fill="${STONE_DARK}" ${line(2.4)}/>`
+          + `<path d="M-7 -40v-10q0-7 7-7t7 7v10z" fill="${INK}"/><path d="M-4 -44q4-6 8 0z" fill="${GOLD}"/>` + bat(-30, -84, .8) + bat(26, -96, .7) + bat(34, -66, .55); },
+    };
+  })();
+
+  return { name: 'vampires', label: 'Vampires', emoji: '🧛', description: 'Pale, gaunt vampires with red eyes, fangs and a flowing cape.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT, map };
 })());

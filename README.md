@@ -108,9 +108,27 @@ To make a new style, copy `public/faces/cel.js` to `public/faces/<name>.js`, cha
 
 #### Map view
 
-Styles that have a map can show the agents on it instead of as cards: click **🗺 Map** in the header, and **▦ Cards** to go back (the choice is remembered). Seven styles have one so far. In `tiki`, every part of the codebase is a little island round a home island with a longhouse; waiting, napping and finished agents go home to the longhouse, and web searches go out to a torch on a rock. In `deepsea`, the parts are glowing coral reefs on the ocean floor round a submarine, joined by trails of bubbles, and the web is a sonar beacon. `mushrooms` has fairy rings of toadstools on a forest floor round a tree stump with a door, stepping stones between them, and a dewy spider's web. `robot` is a factory floor: machines on steel pads round the control room, painted floor lanes, and a radio mast. `knitted` is a patchwork quilt: felt patches sewn on round a sewing basket full of yarn, with strands of yarn between them. `inkwell` is an old parchment chart of a gloomy wood: camps in clearings among bare trees round a crooked cottage, dotted footpaths, and a raven on a dead tree for the web. `monsters` is a bright monster land: hills with caves round a big lair with a toothy mouth, slime trails, and a glowing crystal. With any other style the button is greyed out and you get the cards.
+Every style has a map, so the agents can be shown on it instead of as cards: click **🗺 Map** in the header, and **▦ Cards** to go back (the choice is remembered). In `tiki`, every part of the codebase is a little island round a home island with a longhouse; waiting, napping and finished agents go home to the longhouse, and web searches go out to a torch on a rock. The others follow the same plan in their own look:
 
-The parts of a codebase come from the files the agents touch: an Nx lib (or its `scope:` tag), a .NET project (`Acme.Booking.Api` is *Booking*), a React page or feature folder, a Django app or Python package, or else the first folder that isn't `src`, `lib` or `app`. The same name shows as a 📍 pill on the card. A map is one repo's world, so it shows one repo at a time (the busiest, or the one you pick above the map); the cards show them all. A style gets a map by adding a `map` kit next to its faces; what a kit draws is described at the top of `public/faces.js`.
+| Style | Places | Home | Ways | The web |
+|---|---|---|---|---|
+| `cel` | hills with cottages | town hall with a clock | country roads | the post box |
+| `pixel` | blocks of land | a little castle | dirt tiles | a signal tower |
+| `robot` | machines on steel pads | the control room | floor lanes | a radio mast |
+| `monsters` | hills with caves | a toothy lair | slime trails | a glowing crystal |
+| `cats` | rugs with cat beds | a cat tree | paw prints | a laptop |
+| `vampires` | candlelit courtyards with coffins | the castle keep | red carpets | a belfry of bats |
+| `halloween` | pumpkin patches | a jack-o'-lantern house | dirt tracks | a bubbling cauldron |
+| `ghosts` | churchyard plots | a haunted mansion | floating wisps | an old wireless |
+| `inkwell` | camps among bare trees | a crooked cottage | dotted footpaths | a raven |
+| `mushrooms` | fairy rings | a tree stump | stepping stones | a dewy spider's web |
+| `paper` | torn paper patches | a pop-up house | "cut here" lines | a paper aeroplane |
+| `glass` | small rose windows | the great rose window | bands of lead | a bell |
+| `deepsea` | coral reefs | a submarine | bubble trails | a sonar beacon |
+| `knitted` | felt patches on a quilt | a sewing basket | strands of yarn | a tangled ball of yarn |
+| `clay` | clay hills | a squashy town hall | rolled clay snakes | a clay telly |
+
+The parts of a codebase come from the files the agents touch: an Nx lib (or its `scope:` tag), a .NET project (`Acme.Booking.Api` is *Booking*), a React page or feature folder, a Django app or Python package, or else the first folder that isn't `src`, `lib` or `app`. The same name shows as a 📍 pill on the card. A map is one repo's world, so it shows one repo at a time (the busiest, or the one you pick above the map); the cards show them all. A style gets a map by adding a `map` kit next to its faces; what a kit draws is described at the top of `public/faces.js`. A new style without a kit greys the Map button out and shows the cards.
 
 Agents have moods too: sleepy-eyed just after napping off and deeply asleep (slow breathing, extra z's) after two minutes, worried (sweat drops) when an attempt fails, and dizzy (spiral eyes, circling stars) after lots of failed attempts in a row.
 When an agent that was running finishes, it does a happy jump with confetti; when it fails, it flops over.

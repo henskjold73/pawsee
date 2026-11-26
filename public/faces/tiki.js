@@ -212,13 +212,13 @@ Faces.register((() => {
         + `<path d="M${f(-w * .55)} ${f(-h * .1)}L0 ${f(-h * 1.15)}L${f(w * .55)} ${f(-h * .1)}Z" fill="${THATCH}" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>`
         + `<path d="M${f(-w * .3)} ${f(-h * .4)}h${f(w * .6)}M${f(-w * .18)} ${f(-h * .72)}h${f(w * .36)}" stroke="${GRASS_DARK}" stroke-width="1.6"/>`; };
     return {
-      backdrop: (w, h) => `<defs><radialGradient id="tiki-lagoon" cx="50%" cy="50%" r="70%"><stop offset="0" stop-color="${SEA}"/><stop offset="1" stop-color="${DEEP}"/></radialGradient>
+      backdrop: (w, h) => `<defs><pattern id="tiki-map-grain" width="9" height="40" patternUnits="userSpaceOnUse"><path d="M2 0Q5 10 2 20T2 40M6.5 0Q4 12 6.5 22T6.5 40" fill="none" stroke="#000" stroke-opacity=".13" stroke-width="1"/></pattern><radialGradient id="tiki-lagoon" cx="50%" cy="50%" r="70%"><stop offset="0" stop-color="${SEA}"/><stop offset="1" stop-color="${DEEP}"/></radialGradient>
         <pattern id="tiki-waves" width="90" height="60" patternUnits="userSpaceOnUse"><path d="M8 18q7-6 14 0t14 0M52 48q7-6 14 0t14 0" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="2.4" stroke-linecap="round"/></pattern></defs>
         <rect width="${w}" height="${h}" fill="url(#tiki-lagoon)"/><rect width="${w}" height="${h}" fill="url(#tiki-waves)"/>`,
       base: (seed) => island(100, seed)
         + `<path d="M-14 70h28v70h-28z" fill="${WOOD}" stroke="${INK}" stroke-width="2.5"/><path d="M-14 84h28M-14 98h28M-14 112h28M-14 126h28" stroke="${INK}" stroke-width="1.4" opacity=".6"/>`
         + palm(-80, -4, -1, 1) + palm(76, -10, 1, .9)
-        + `<g transform="translate(0 -38)"><rect x="-46" y="-6" width="92" height="30" fill="${WOOD}" stroke="${INK}" stroke-width="2.5"/><rect x="-46" y="-6" width="92" height="30" fill="url(#tiki-grain)"/>
+        + `<g transform="translate(0 -38)"><rect x="-46" y="-6" width="92" height="30" fill="${WOOD}" stroke="${INK}" stroke-width="2.5"/><rect x="-46" y="-6" width="92" height="30" fill="url(#tiki-map-grain)"/>
           <rect x="-9" y="4" width="18" height="20" rx="3" fill="${INK}"/><path d="M-58 -2L-36 -40H36L58 -2Z" fill="${THATCH}" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round"/>
           <path d="M-44 -14h88M-38 -27h76" stroke="${GRASS_DARK}" stroke-width="2"/><path d="M-36 -40l-6-10M36 -40l6-10" stroke="${INK}" stroke-width="3" stroke-linecap="round"/></g>`,
       place: (name, seed, n) => { const r = 64 + Math.min(n, 4) * 3, rnd = rng(seed | 0), lean = rnd() < .5 ? -1 : 1;

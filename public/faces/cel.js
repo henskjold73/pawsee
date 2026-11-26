@@ -234,5 +234,32 @@ Faces.register((() => {
     };
   }
 
-  return { name: 'cel', label: 'Cel', emoji: '🗿', description: 'Thick ink line, flat colour and a deadpan stare.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  // the map: a cartoon village in the same thick ink and flat colour as the faces. Every domain is a green hill with a cottage,
+  // the base is the town hall with a clock, the ways are country roads, and the web is the village post box (see map.js)
+  const map = (() => {
+    const GRASS = '#9ad06a', GRASS_D = '#7ab84a', HILLS = ['#b8e07a', '#a0d880', '#c8e890', '#90cc70'], ROOF = ['#e8604a', '#4a8ad8', '#e8b040', '#9a6ad0'], WALL = '#fff4e0', ROAD = '#e8d4a0';
+    const f = n => +n.toFixed(1);
+    const line = (w = 3) => `stroke="${INK}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
+    const house = (k, roof) => `<g transform="scale(${k})"><rect x="-12" y="-8" width="24" height="18" fill="${WALL}" ${line(2.4)}/><path d="M-16 -7l16-14 16 14z" fill="${roof}" ${line(2.4)}/><rect x="-3" y="2" width="6" height="8" fill="${INK}"/></g>`;
+    const bush = (x, y, k) => `<g transform="translate(${f(x)} ${f(y)}) scale(${k})"><path d="M-12 4q-4-12 6-12q4-8 12-2q10-2 8 10q2 6-4 6h-18q-6 0-4-2z" fill="#5aa84a" ${line(2.2)}/></g>`;
+    return {
+      backdrop: (w, h) => `<defs><pattern id="cel-tufts" width="110" height="90" patternUnits="userSpaceOnUse"><path d="M14 30l3-8 3 8M70 66l3-7 3 7M94 18l2-6 3 6M40 80l3-6 2 6" fill="none" stroke="${GRASS_D}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></pattern></defs>
+        <rect width="${w}" height="${h}" fill="${GRASS}"/><rect width="${w}" height="${h}" fill="url(#cel-tufts)"/>`,
+      // the town hall: a wide building with columns, a clock tower and a flag
+      base: (seed) => `<path d="${Faces.blob(106, seed, { squash: .58, wob: .1 })}" fill="${ROAD}" ${line(2.8)}/>` + bush(-86, 10, 1.1) + bush(86, 4, 1)
+        + `<g transform="translate(0 -2) scale(.72)"><rect x="-56" y="-48" width="112" height="56" fill="${WALL}" ${line(3)}/><path d="M-64 -46l64-24 64 24z" fill="${ROOF[0]}" ${line(3)}/>`
+        + `<path d="M-40 -40v42M-20 -40v42M20 -40v42M40 -40v42" ${line(2.4)}/><rect x="-14" y="-110" width="28" height="44" fill="${WALL}" ${line(3)}/><path d="M-18 -110l18-18 18 18z" fill="${ROOF[1]}" ${line(3)}/>`
+        + `<circle cy="-90" r="10" fill="#fff" ${line(2.4)}/><path d="M0 -90v-6M0 -90h5" ${line(2)}/><path d="M0 -128v-14" ${line(2.4)}/><path d="M0 -142h12l-3 4 3 4h-12z" fill="${ROOF[2]}" ${line(2)}/><path d="M-10 8v-20h20v20z" fill="${INK}"/></g>`,
+      // a green hill with a cottage on top and a bush
+      place: (name, seed, n) => { const r = 60 + Math.min(n, 4) * 3, rnd = rng(seed | 0), d = Faces.blob(r, seed, { squash: .58, wob: .12 });
+        return `<path d="${d}" fill="${HILLS[Math.floor(rnd() * HILLS.length)]}" ${line(3)}/><g transform="translate(${f(-r * .45)} ${f(-r * .12)})">${house(1.2, ROOF[Math.floor(rnd() * ROOF.length)])}</g>` + bush(r * .55, r * .06, .9); },
+      building: (name, seed) => house(.9, ROOF[(seed >>> 0) % ROOF.length]),
+      // a country road with a dashed middle line
+      route: (x1, y1, x2, y2) => `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="${INK}" stroke-width="16" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="${ROAD}" stroke-width="11" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#fff" stroke-width="2" stroke-dasharray="8 10"/>`,
+      // the village post box
+      sea: () => `<ellipse cy="4" rx="22" ry="7" fill="#000" opacity=".15"/><path d="M-14 4v-44q0-14 14-14t14 14v44z" fill="#e8403a" ${line(3)}/><path d="M-9 -30h18" ${line(3)}/><path d="M-10 -16h20" stroke="#fff" stroke-width="3"/><path d="M-18 4h36" ${line(3)}/>`,
+    };
+  })();
+
+  return { name: 'cel', label: 'Cel', emoji: '🗿', description: 'Thick ink line, flat colour and a deadpan stare.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT, map };
 })());
