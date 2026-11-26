@@ -230,7 +230,8 @@ const demo = now => {
     demoStep = step;
   }
   all.sort((x, y) => demoOrder.indexOf(x.id) - demoOrder.indexOf(y.id));
-  return all.map(a => ({ type: { explore: 'explore', code: 'code-review', shell: 'task' }[a.kind] || 'general-purpose', project: 'pawsee', branch: 'demo', mode: 'sync', model: 'demo', ...a }));
+  const places = [null, { eco: 'nx', domain: 'booking', building: 'data-access' }, { eco: 'nx', domain: 'checkout', building: null }, { eco: 'nx', domain: 'search', building: 'feature' }];
+  return all.map((a, i) => ({ where: places[i % places.length], type: { explore: 'explore', code: 'code-review', shell: 'task' }[a.kind] || 'general-purpose', project: 'pawsee', branch: 'demo', mode: 'sync', model: 'demo', ...a }));
 };
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -471,7 +472,9 @@ function render(snap) {
     const done = a.status === 'done';
     tb.hidden = !type || done; tb.textContent = type;
     usedBadges(el.querySelector('.used'), done ? a.used : [], snap.logos);
-    el.querySelector('.sub').textContent = [a.project, a.branch].filter(Boolean).join(' · ');
+    const w = a.where; // the part of the codebase it last touched a file in
+    el.querySelector('.sub').innerHTML = (w ? `<span class="where" title="${esc(`Working in ${w.domain}${w.building ? ' › ' + w.building : ''} (${w.eco})`)}">${esc(w.domain)}${w.building ? `<small>${esc(w.building)}</small>` : ''}</span>` : '') +
+      esc([a.project, a.branch].filter(Boolean).join(' · '));
     el.title = [a.description, a.sessionName].filter(Boolean).join('\n');
     el.querySelector('.doing').innerHTML = doingHtml(a, el.classList.contains('open'));
     el.querySelector('.meta').innerHTML = metaHtml(a, now);

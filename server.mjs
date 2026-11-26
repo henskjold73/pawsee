@@ -17,6 +17,7 @@ import { focusSession } from './focus.mjs';
 import { isNewer, latestRelease } from './update.mjs';
 import { problemsOf } from './health.mjs';
 import { noteTokens, noteCall, burnOf } from './meter.mjs';
+import { domainOf } from './domain.mjs';
 import { recordTool, recordPrompt, buildHistory } from './history.mjs';
 
 // set when running as the single-file binary: assets are embedded instead of read from disk
@@ -381,6 +382,7 @@ function handle(s, ev) {
         m.tools += 1;
         recordTool(s, null, ts, m.kind, m.activity);
         noteCall(m, d.toolName, d.arguments);
+        if (d.arguments?.path) m.where = domainOf(d.arguments.path, s.meta.cwd); // stays put until the next file, for the map
         const b = brandOf(d); if (b) { m.brand = b; m.brandAt = ts; }
         noteUsed(m, d);
         break;
@@ -391,6 +393,7 @@ function handle(s, ev) {
         a.activity = describeTool(d); a.activityFull = fullTool(d); a.activityAt = ts; a.kind = kindOf(d.toolName); a.tools += 1;
         recordTool(s, ev.agentId, ts, a.kind, a.activity);
         noteCall(a, d.toolName, d.arguments);
+        if (d.arguments?.path) a.where = domainOf(d.arguments.path, s.meta.cwd);
         const b = brandOf(d); if (b) { a.brand = b; a.brandAt = ts; }
         noteUsed(a, d);
       }
@@ -701,7 +704,7 @@ function snapshot() {
       let card = { id: 'main', name: s.promptTitle || s.meta.name || s.product || 'Copilot', type: 'main agent', description: s.promptFull || '', model: '', mode: 'sync',
         status: base.status, kind: base.kind, startedAt: base.startedAt || now, endedAt: base.endedAt, activity: base.activity,
         activityFull: base.activityFull, said: base.said, saidFull: base.saidFull, activityAt: base.activityAt || now,
-        tools: base.tools, tokens: base.tokens || 0, burn: burnOf(base, now), repeat: base.repeat || 0, used: base.used || [], aic: s.mainAic, effort: base.effort, brand: base.brand, brandAt: base.brandAt, worry: base.worry || 0, worryAt: base.worryAt || 0, lastError: base.lastError || '', fails: base.fails || 0,
+        tools: base.tools, tokens: base.tokens || 0, burn: burnOf(base, now), repeat: base.repeat || 0, used: base.used || [], aic: s.mainAic, effort: base.effort, brand: base.brand, brandAt: base.brandAt, where: base.where || null, worry: base.worry || 0, worryAt: base.worryAt || 0, lastError: base.lastError || '', fails: base.fails || 0,
         label: idle ? (working ? 'waiting on agents' : 'your turn') : undefined, task: s.task || 0 };
       if (s.promptFull && base.activityFull) card.activityFull = `${base.activityFull}\n\n— current prompt —\n${s.promptFull}`;
       if (idle && working) {

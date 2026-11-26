@@ -37,6 +37,7 @@
     "focus.mjs",
     "history.mjs",
     "meter.mjs",
+    "domain.mjs",
     "public"
   ],
   "engines": {
