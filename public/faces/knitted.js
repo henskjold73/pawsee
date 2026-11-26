@@ -196,5 +196,46 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'wool', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'yarn', colors: colors(YARN, null) }],
   });
 
-  return { name: 'knitted', label: 'Knitted', emoji: '🧶', description: 'Hand-knitted toys with button eyes, yarn hair and a striped jumper.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  // the map: a patchwork quilt. Every domain is a felt patch sewn on with running stitch, the base is a wicker sewing basket,
+  // the ways are strands of yarn, and the web is a tangled ball of yarn (see map.js)
+  const map = (() => {
+    const QUILT = ['#f2d8c8', '#d8e4f0', '#e8e0c4', '#e2d4ea', '#d4e8d4'], FELT = ['#e8706a', '#6a9ad8', '#e8b84a', '#8ac06a', '#b08ad8', '#e88ab0'];
+    const WICKER = '#c8944a', WICKER_DARK = '#8a5e2a';
+    const f = n => +n.toFixed(1);
+    const stitch = (d, c = THREAD) => `<path d="${d}" fill="none" stroke="${c}" stroke-width="2.4" stroke-dasharray="7 6" stroke-linecap="round"/>`;
+    const button = (x, y, r, c) => `<circle cx="${f(x)}" cy="${f(y)}" r="${r}" fill="${c}" stroke="${INK}" stroke-width="2"/>${[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([a, b]) => `<circle cx="${f(x + a * r * .3)}" cy="${f(y + b * r * .3)}" r="${f(r * .14)}" fill="${INK}"/>`).join('')}`;
+    const ball = (x, y, r, c) => `<g transform="translate(${f(x)} ${f(y)})"><circle r="${r}" fill="${c}" stroke="${INK}" stroke-width="2.4"/><circle r="${r}" fill="${KNIT}"/>`
+      + `<path d="M${f(-r * .8)} ${f(-r * .3)}q${f(r * .8)} ${f(r * .6)} ${f(r * 1.6)} 0M${f(-r * .6)} ${f(r * .5)}q${f(r * .7)} ${f(-r * .7)} ${f(r * 1.3)} ${f(-r * .2)}M${f(-r * .2)} ${f(-r * .9)}q${f(r * .5)} ${f(r * .9)} ${f(r * .1)} ${f(r * 1.8)}" fill="none" stroke="${THREAD}" stroke-opacity=".5" stroke-width="1.6"/></g>`;
+    return {
+      backdrop: (w, h) => `<defs><pattern id="knitted-quilt" width="240" height="240" patternUnits="userSpaceOnUse">
+          ${[[0, 0, 0], [120, 0, 1], [0, 120, 2], [120, 120, 3]].map(([x, y, i]) => `<rect x="${x}" y="${y}" width="120" height="120" fill="${QUILT[i]}"/>`).join('')}
+          <path d="M0 0H240M0 120H240M0 0V240M120 0V240" stroke="#a88a8a" stroke-width="2.4" stroke-dasharray="7 6"/><path d="M30 30l60 60M90 30l-60 60M150 150l60 60M210 150l-60 60" stroke="#fff" stroke-opacity=".35" stroke-width="2"/>
+          <rect x="120" y="0" width="120" height="120" fill="url(#knit-stitch)"/><rect x="0" y="120" width="120" height="120" fill="url(#knit-stitch)"/></pattern></defs>
+        <rect width="${w}" height="${h}" fill="url(#knitted-quilt)"/>`,
+      // a wicker sewing basket full of yarn balls, with knitting needles stuck in
+      base: () => `<ellipse cy="46" rx="112" ry="30" fill="#000" opacity=".12"/>`
+        + `<path d="M-60 -50l120 -16M-50 -62l100 26" stroke="#a8a8b8" stroke-width="5" stroke-linecap="round"/><circle cx="62" cy="-66" r="5" fill="${FELT_RED}" stroke="${INK}" stroke-width="1.6"/><circle cx="52" cy="-36" r="5" fill="${JUMPER}" stroke="${INK}" stroke-width="1.6"/>`
+        + ball(-44, -20, 26, FELT[0]) + ball(10, -28, 30, FELT[1]) + ball(52, -14, 22, FELT[2])
+        + `<path d="M-90 -12h180l-14 60q-2 8-12 8h-128q-10 0-12-8z" fill="${WICKER}" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>`
+        + [-1, 1, 3].map(i => `<path d="M-86 ${4 + i * 9}h172" stroke="${WICKER_DARK}" stroke-width="3" stroke-dasharray="10 6"/>`).join('')
+        + `<rect x="-96" y="-18" width="192" height="12" rx="6" fill="${WICKER}" stroke="${INK}" stroke-width="3"/>`,
+      // a felt patch, sewn on round its edge, with a button or two
+      place: (name, seed, n) => { const r = 62 + Math.min(n, 4) * 3, rnd = rng(seed | 0), c = FELT[Math.floor(rnd() * FELT.length)], d = Faces.blob(r, seed, { bumps: 10, wob: .14, squash: .64 });
+        return `<path d="${d}" fill="#000" opacity=".12" transform="translate(3 5)"/><path d="${d}" fill="${c}" stroke="${INK}" stroke-width="2.6"/><path d="${d}" fill="${KNIT}"/>`
+          + `<g transform="scale(.86)">${stitch(d, CREAM)}</g>` + button(-r * .55, -r * .25, 7, CREAM) + (rnd() < .6 ? button(r * .6, r * .12, 5.5, FELT[Math.floor(rnd() * FELT.length)]) : ''); },
+      // a tomato pincushion with pins in it
+      building: (name, seed) => `<ellipse cy="6" rx="16" ry="11" fill="${FELT[(seed >>> 0) % FELT.length]}" stroke="${INK}" stroke-width="2"/><path d="M-8 -2q-2 8 0 16M0 -4v20M8 -2q2 8 0 16" fill="none" stroke="${INK}" stroke-opacity=".4" stroke-width="1.2"/>`
+        + `<path d="M-6 -4l-4-10M3 -5l2-12M9 -2l6-8" stroke="#a8a8b8" stroke-width="1.6"/><circle cx="-10" cy="-14" r="2.4" fill="${JUMPER}"/><circle cx="5" cy="-17" r="2.4" fill="${CREAM}" stroke="${INK}" stroke-width=".8"/><circle cx="15" cy="-10" r="2.4" fill="#e8b84a"/>`,
+      // a strand of yarn, wavy, from the basket to the patch
+      route: (x1, y1, x2, y2) => { const n = 6, nx = -(y2 - y1) / Math.hypot(x2 - x1, y2 - y1 || 1), ny = (x2 - x1) / Math.hypot(x2 - x1, y2 - y1 || 1);
+        let d = `M${x1} ${y1}`;
+        for (let i = 1; i <= n; i++) { const t = i / n, c = (i - .5) / n, w = (i % 2 ? 14 : -14);
+          d += `Q${f(x1 + (x2 - x1) * c + nx * w)} ${f(y1 + (y2 - y1) * c + ny * w)} ${f(x1 + (x2 - x1) * t)} ${f(y1 + (y2 - y1) * t)}`; }
+        return `<path d="${d}" fill="none" stroke="${FELT_RED}" stroke-opacity=".75" stroke-width="4" stroke-linecap="round"/>`; },
+      // a tangled ball of yarn: the web
+      sea: () => ball(0, -22, 26, '#8ac06a') + `<path d="M-20 -6q-30 10-24 28t30 4q18-14 40-2t22-12" fill="none" stroke="#8ac06a" stroke-width="3.4" stroke-linecap="round"/><path d="M14 -40q22-18 34-2" fill="none" stroke="#8ac06a" stroke-width="3.4" stroke-linecap="round"/>`,
+    };
+  })();
+
+  return { name: 'knitted', label: 'Knitted', emoji: '🧶', description: 'Hand-knitted toys with button eyes, yarn hair and a striped jumper.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT, map };
 })());

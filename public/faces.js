@@ -46,6 +46,14 @@ const Faces = (() => {
   // small seeded random and string hash, shared so that a style's agents keep their faces from one run to the next
   const rng = (seed) => { let a = (seed >>> 0) || 1; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
   const hash = (str) => { let h = 2166136261; for (const c of String(str)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+  // a soft lumpy outline round 0,0 for map kits (islands, rocks, clearings): r across, squashed in y for a top-down tilt; the same seed gives the same shape
+  const blob = (r, seed, { bumps = 12, wob = .18, squash = .7 } = {}) => {
+    const rnd = rng(seed | 0), f = n => n.toFixed(1), pts = [...Array(bumps)].map((_, i) => { const a = i / bumps * 2 * Math.PI, k = r * (1 - wob / 2 + rnd() * wob); return [Math.cos(a) * k, Math.sin(a) * k * squash]; });
+    const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+    let d = `M${mid(pts.at(-1), pts[0]).map(f).join(' ')}`;
+    pts.forEach((p, i) => { const m = mid(p, pts[(i + 1) % bumps]); d += `Q${f(p[0])} ${f(p[1])} ${f(m[0])} ${f(m[1])}`; });
+    return d + 'Z';
+  };
 
   // A relative of `main` for derive(): the tone key moves to the same or a neighbouring value, then each trait in `keep` (trait -> chance it is passed down)
   // is kept or swapped for another option from pool(trait); at least two always change, so a relative is never a copy.
@@ -117,7 +125,7 @@ const Faces = (() => {
   };
 
   const api = {
-    register, use, problems, rng, hash, kin, MOOD_CLASSES, BODY_CLASSES, HAT_NAMES, PIECES, DEFAULT_STYLE,
+    register, use, problems, rng, hash, kin, blob, MOOD_CLASSES, BODY_CLASSES, HAT_NAMES, PIECES, DEFAULT_STYLE,
     styles: list, unlock, onUse: (fn) => { listeners.push(fn); },
     get style() { return active(); },
     get DEFAULT() { return active().DEFAULT; },

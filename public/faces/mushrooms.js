@@ -191,5 +191,50 @@ Faces.register((() => {
     swatches: [{ key: 'skin', label: 'stem', colors: colors(SKIN, 0) }, { key: 'hairColor', label: 'cap', colors: colors(CAP, null) }],
   });
 
-  return { name: 'mushrooms', label: 'Mushroom folk', emoji: '🍄', description: 'Little mushroom folk with spotted toadstool caps and frilly stems.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT };
+  // the map: a mossy forest floor. Every domain is a clearing ringed with toadstools (a fairy ring), the base is a tree stump
+  // with a door in it, and the web is, of course, a dewy spider's web (see map.js)
+  const map = (() => {
+    const MOSS = '#5a8a3a', MOSS_DARK = '#3e6a2a', BARK = '#8a5a34', BARK_DARK = '#5e3a20', WOOD_TOP = '#e2b87a', STONE = '#b8ae9a', DEW = '#d8f4ff';
+    const CAPS = ['#d8443a', '#a8643a', '#8a5aa8', '#e0a83a', '#c85a8a'];
+    const f = n => +n.toFixed(1);
+    const toadstool = (x, y, k, cap, spots = true) => `<g transform="translate(${f(x)} ${f(y)}) scale(${k})"><path d="M-4 0v-10h8v10z" fill="#f2e8d4" stroke="${INK}" stroke-width="2"/>`
+      + `<path d="M-12 -9q0-12 12-12t12 12z" fill="${cap}" stroke="${INK}" stroke-width="2.2" stroke-linejoin="round"/>${spots ? `<circle cx="-5" cy="-14" r="2" fill="#fff8e8"/><circle cx="4" cy="-16" r="1.6" fill="#fff8e8"/>` : ''}</g>`;
+    const clearing = (r, seed) => `<path d="${Faces.blob(r * 1.15, seed + 9, { squash: .62 })}" fill="${MOSS_DARK}" opacity=".6"/><path d="${Faces.blob(r, seed, { squash: .6 })}" fill="#9ec26a" stroke="${MOSS_DARK}" stroke-width="3"/>`;
+    return {
+      backdrop: (w, h) => `<defs><radialGradient id="mushrooms-floor" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="${MOSS}"/><stop offset="1" stop-color="#2a4a1e"/></radialGradient>
+        <pattern id="mushrooms-leaves" width="120" height="100" patternUnits="userSpaceOnUse"><path d="M14 20q8-10 16 0q-8 8-16 0z" fill="#b8742a" opacity=".45"/><path d="M80 64q6-12 16-2q-10 8-16 2z" fill="#d8a23a" opacity=".4"/>
+          <path d="M50 90q4-8 10 0q-6 5-10 0z" fill="#8a4a2a" opacity=".4"/><circle cx="104" cy="22" r="2" fill="#2a4a1e" opacity=".5"/><circle cx="36" cy="58" r="1.6" fill="#2a4a1e" opacity=".5"/></pattern></defs>
+        <rect width="${w}" height="${h}" fill="url(#mushrooms-floor)"/><rect width="${w}" height="${h}" fill="url(#mushrooms-leaves)"/>`,
+      // a cut tree stump with roots, a round door and two windows; the rings show on its top
+      base: (seed) => `<ellipse cy="40" rx="118" ry="44" fill="${MOSS_DARK}" opacity=".55"/>`
+        + `<path d="M-74 30q-30 10-44 4M74 30q30 10 44 2M-40 40q-10 18-30 22M40 40q12 18 34 20" stroke="${BARK_DARK}" stroke-width="12" fill="none" stroke-linecap="round"/>`
+        + `<path d="M-70 -60v86q0 18 70 18t70-18v-86z" fill="${BARK}" stroke="${INK}" stroke-width="3"/><path d="M-50 -40v60M-20 -30v72M22 -34v74M52 -42v58" stroke="${BARK_DARK}" stroke-width="2.4" opacity=".6"/>`
+        + `<ellipse cy="-60" rx="70" ry="20" fill="${WOOD_TOP}" stroke="${INK}" stroke-width="3"/><ellipse cy="-60" rx="46" ry="12" fill="none" stroke="${BARK}" stroke-width="2" opacity=".6"/><ellipse cy="-60" rx="22" ry="6" fill="none" stroke="${BARK}" stroke-width="2" opacity=".6"/>`
+        + `<path d="M-14 36v-26q0-14 14-14t14 14v26z" fill="${BARK_DARK}" stroke="${INK}" stroke-width="2.5"/><circle cx="8" cy="22" r="2" fill="${WOOD_TOP}"/>`
+        + `<circle cx="-40" cy="-16" r="9" fill="#ffd77a" stroke="${INK}" stroke-width="2.5"/><circle cx="40" cy="-20" r="9" fill="#ffd77a" stroke="${INK}" stroke-width="2.5"/>`
+        + toadstool(-88, 22, 1.1, CAPS[0]) + toadstool(92, 18, .9, CAPS[3]),
+      // a clearing in a fairy ring of toadstools
+      place: (name, seed, n) => { const r = 60 + Math.min(n, 4) * 3, rnd = rng(seed | 0), cap = CAPS[Math.floor(rnd() * CAPS.length)], count = 7 + Math.floor(rnd() * 4);
+        const ring = [...Array(count)].map((_, i) => { const a = (i / count) * 2 * Math.PI + rnd() * .3, back = Math.sin(a) < 0;
+          return { y: Math.sin(a) * r * .62, s: toadstool(Math.cos(a) * r * 1.02, Math.sin(a) * r * .64 + 8, (back ? .62 : .8) + rnd() * .2, rnd() < .25 ? CAPS[Math.floor(rnd() * CAPS.length)] : cap, rnd() < .7) }; });
+        return clearing(r, seed) + ring.sort((p, q) => p.y - q.y).map(p => p.s).join(''); },
+      // a mushroom house: a big cap for a roof, a door in the stem
+      building: (name, seed) => { const cap = CAPS[(seed >>> 0) % CAPS.length];
+        return `<path d="M-8 10v-16h16v16z" fill="#f2e8d4" stroke="${INK}" stroke-width="2"/><path d="M-3 10v-7q0-3 3-3t3 3v7z" fill="${BARK_DARK}"/>`
+          + `<path d="M-19 -5q0-17 19-17t19 17z" fill="${cap}" stroke="${INK}" stroke-width="2.2" stroke-linejoin="round"/><circle cx="-8" cy="-12" r="2.6" fill="#fff8e8"/><circle cx="6" cy="-15" r="2" fill="#fff8e8"/><circle cx="12" cy="-8" r="1.6" fill="#fff8e8"/>`; },
+      // stepping stones along a gentle curve
+      route: (x1, y1, x2, y2) => { const n = Math.max(3, Math.round(Math.hypot(x2 - x1, y2 - y1) / 34)), bx = (y2 - y1) * .1, by = (x1 - x2) * .1;
+        return [...Array(n)].map((_, i) => { const t = (i + .5) / n, b = 4 * t * (1 - t);
+          return `<ellipse cx="${f(x1 + (x2 - x1) * t + bx * b)}" cy="${f(y1 + (y2 - y1) * t + by * b)}" rx="9" ry="5.5" fill="${STONE}" stroke="${INK}" stroke-opacity=".5" stroke-width="1.4"/>`; }).join(''); },
+      // a spider's web strung between two twigs, beaded with dew
+      sea: () => { const spokes = 8, R = 34, rings = [10, 18, 26, 34];
+        const pt = (i, r) => [f(Math.cos(i / spokes * 2 * Math.PI) * r), f(Math.sin(i / spokes * 2 * Math.PI) * r - 40)];
+        return `<path d="M-46 4L-38 -84M46 4L40 -84" stroke="${BARK_DARK}" stroke-width="5" stroke-linecap="round"/>`
+          + [...Array(spokes)].map((_, i) => `<path d="M0 -40L${pt(i, R).join(' ')}" stroke="#fff" stroke-opacity=".75" stroke-width="1.2"/>`).join('')
+          + rings.map(r => `<path d="M${[...Array(spokes + 1)].map((_, i) => pt(i % spokes, r).join(' ')).join('L')}" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.1"/>`).join('')
+          + [[1, 26], [3, 18], [6, 34], [5, 10]].map(([i, r]) => `<circle cx="${pt(i, r)[0]}" cy="${pt(i, r)[1]}" r="2.4" fill="${DEW}" stroke="#fff" stroke-width=".8"/>`).join(''); },
+    };
+  })();
+
+  return { name: 'mushrooms', label: 'Mushroom folk', emoji: '🍄', description: 'Little mushroom folk with spotted toadstool caps and frilly stems.', compose, pieces, mood, hatFor, headSpan, body, crown, derive, random, editor, DEFAULT, map };
 })());

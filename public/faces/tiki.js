@@ -194,13 +194,7 @@ Faces.register((() => {
   const map = (() => {
     const SEA = '#1f8fb0', DEEP = '#13607e', SHALLOW = '#6fd3d0', SAND = '#f0d79a', SAND_DARK = '#d7b46a', TURF = '#6fae3e', TURF_DARK = '#4f8a2e', WOOD = '#9a5a2c', THATCH = '#d2a24c';
     // a soft lumpy outline round 0,0: the same seed always gives the same island
-    const blob = (r, seed, bumps = 13, wob = .16) => {
-      const rnd = rng(seed | 0), pts = [...Array(bumps)].map((_, i) => { const a = i / bumps * 2 * Math.PI, k = r * (1 - wob / 2 + rnd() * wob); return [Math.cos(a) * k, Math.sin(a) * k * .82]; });
-      const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2], f = n => n.toFixed(1);
-      let d = `M${mid(pts.at(-1), pts[0]).map(f).join(' ')}`;
-      pts.forEach((p, i) => { const m = mid(p, pts[(i + 1) % bumps]); d += `Q${f(p[0])} ${f(p[1])} ${f(m[0])} ${f(m[1])}`; });
-      return d + 'Z';
-    };
+    const blob = (r, seed, bumps = 13, wob = 0.16, squash = 0.82) => Faces.blob(r, seed, { bumps, wob, squash });
     const island = (r, seed) => `<path d="${blob(r * 1.22, seed + 7, 11, .1)}" fill="${SHALLOW}" opacity=".55"/>`
       + `<path d="${blob(r, seed)}" fill="${SAND}" stroke="${SAND_DARK}" stroke-width="3"/>`
       + `<path d="${blob(r * .68, seed + 3)}" transform="translate(0 -4)" fill="${TURF}" stroke="${TURF_DARK}" stroke-width="2.5"/>`;
