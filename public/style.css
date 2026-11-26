@@ -439,7 +439,9 @@ body.party .card .paw .arm{animation:j-a 1.26s ease-in-out 3 both}
 /* map view (map.js): the world is an SVG from the face style's map kit; the paws are the cards' own paws (.card with its data attributes), placed over it */
 .map{display:none;max-width:1100px;margin:0 auto}
 body.mapmode .map{display:block}
-body.mapmode #grid{display:none}
+/* not display:none: the paws on the map use SVG filters and patterns (fixed ids) whose first copy is in a card, and a filter inside a
+   display:none element draws nothing, so a style like paper would lose its paws. The cards stay rendered, just invisible and out of the way. */
+body.mapmode #grid{visibility:hidden;position:absolute;left:0;top:0;width:1px;height:1px;overflow:hidden;pointer-events:none}
 .mapbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
 .mapbar .snd{margin-left:0}
 .map [hidden]{display:none}
